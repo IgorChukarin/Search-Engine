@@ -12,7 +12,7 @@ import javax.persistence.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "page")
+@Table(name = "page", indexes = @Index(name = "path_index", columnList = "path"))
 public class Page {
 
     @Id
