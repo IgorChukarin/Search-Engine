@@ -24,7 +24,7 @@ public class Page {
     @JoinColumn(name = "site_id", nullable = false)
     private Site site;
 
-    @Column(name = "path", nullable = false, length = 255)
+    @Column(name = "path", columnDefinition = "VARCHAR(255)", nullable = false)
     private String path;
 
     @Column(name = "code", nullable = false)

@@ -23,7 +23,7 @@ public class Site {
     private Integer id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", columnDefinition = "ENUM('INDEXING', 'INDEXED', 'FAILED')", nullable = false)
     private SiteStatus status;
 
     @Column(name = "status_time", nullable = false)
@@ -32,10 +32,10 @@ public class Site {
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;
 
-    @Column(name = "url", nullable = false, length = 255)
+    @Column(name = "url", columnDefinition = "VARCHAR(255)", nullable = false)
     private String url;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(name = "name", columnDefinition = "VARCHAR(255)", nullable = false)
     private String name;
 
     @OneToMany(mappedBy = "site", cascade = CascadeType.ALL)
