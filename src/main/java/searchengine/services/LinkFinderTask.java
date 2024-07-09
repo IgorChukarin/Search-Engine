@@ -1,76 +1,83 @@
 package searchengine.services;
 
+import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import searchengine.model.Page;
+import searchengine.model.Site;
+import searchengine.repositories.PageRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.RecursiveTask;
+import java.util.concurrent.RecursiveAction;
 
-public class LinkFinderTask extends RecursiveTask<String> {
+@AllArgsConstructor
+@RequiredArgsConstructor
+public class LinkFinderTask extends RecursiveAction {
+    private Site site;
     private String root;
-    private String link;
-    private int depth;
+    private String currentLink;
     private Set<String> cache;
+    private final PageRepository pageRepository;
 
-    public LinkFinderTask(String root, String link, int depth, Set<String> cache) {
-        this.root = root;
-        this.link = link;
-        this.depth = depth;
-        this.cache = cache;
-    }
+    private final String pathRegex = "^/[^#]+$";
+    private final String imageRegex = "^.*\\.(jpe?g|png|gif|bmp)$";
 
     @Override
-    protected String compute() {
-        System.out.println("\t".repeat(depth) + link);
-        String linkTree = "\t".repeat(depth) + link + "\n";
-        Set<String> subLinks = findNestedLinks(link);
-        depth += 1;
+    protected void compute() {
+        System.out.println(currentLink);
+        List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderTask> taskList = new ArrayList<>();
-        for (String subLink : subLinks) {
-            if (cache.add(subLink)) {
-                LinkFinderTask task = new LinkFinderTask(root, subLink, depth, cache);
-                task.fork();
-                taskList.add(task);
-            }
+        for (String nestedLink : nestedLinks) {
+            LinkFinderTask task = new LinkFinderTask(site, root, nestedLink, cache, pageRepository);
+            task.fork();
+            taskList.add(task);
         }
-        depth = 0;
         for (LinkFinderTask task : taskList) {
-            linkTree += task.join();
+            task.join();
         }
-        return linkTree;
     }
 
-    public Set<String> findNestedLinks(String url) {
-        String fullLinkRegex = url + "/[^#]+";
-        String linkRegex = "/[^#]+";
-        String imageRegex = ".*\\.(jpeg|jpg|png|gif|bmp)";
-        Set<String> nestedLinks = new LinkedHashSet<>();
+    public List<String> findNestedLinks(String currentLink) {
+        String fullLinkRegex = currentLink + pathRegex;
+        List<String> nestedLinks = new ArrayList<>();
         try {
-            Document document = Jsoup.connect(url)
+            Connection.Response response = Jsoup.connect(currentLink)
                     .userAgent("ChukarinSearchBot")
                     .referrer("http://www.google.com")
-                    .get();
-            Thread.sleep(2000);
-            Elements links = document.select("a[href]");
-            for (Element link : links) {
-                String href = link.attr("href");
-                if (href.matches(imageRegex)) {
+                    .execute();
+            Document document = response.parse();
+
+            Page page = new Page();
+            page.setPath(currentLink);
+            page.setCode(response.statusCode());
+            page.setContent(document.text());
+            page.setSite(site);
+            pageRepository.save(page);
+
+            Elements elements = document.select("a[href]");
+            for (Element element : elements) {
+                String link = element.attr("href");
+                if (!cache.add(link)) {
                     continue;
-                } else if (href.matches(fullLinkRegex)) {
-                    nestedLinks.add(href);
-                } else if (href.matches(linkRegex)) {
-                    nestedLinks.add(root + href);
+                }
+                if (link.matches(imageRegex)) {
+                    continue;
+                }
+                if (link.matches(fullLinkRegex)) {
+                    nestedLinks.add(link);
+                }
+                else if (link.matches(pathRegex)) {
+                    nestedLinks.add(root + link);
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
         return nestedLinks;
