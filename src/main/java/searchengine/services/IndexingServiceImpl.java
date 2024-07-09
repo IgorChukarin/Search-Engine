@@ -27,28 +27,65 @@ public class IndexingServiceImpl implements IndexingService{
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
 
+    private volatile boolean isIndexing = false;
+
     @Override
     public IndexingResponse startIndexing() {
-        List<LinkFinderTask> tasks = new ArrayList<>();
-        siteRepository.deleteAll();
-        for (SiteConfig siteConfig : sitesList.getSites()) {
-            String url = siteConfig.getUrl();
-            siteRepository.deleteByUrl(url);
 
-            Site site = new Site();
-            site.setName(siteConfig.getName());
-            site.setUrl(siteConfig.getUrl());
-            site.setStatus(SiteStatus.INDEXING);
-            site.setStatusTime(LocalDateTime.now());
-            siteRepository.save(site);
-
-            Set<String> cache = new HashSet<>();
-            LinkFinderTask task = new LinkFinderTask(site, url, url, cache, pageRepository);
-            tasks.add(task);
-        }
-        forkJoinPool.invoke(tasks.get(2));
         IndexingResponse indexingResponse = new IndexingResponse();
-        indexingResponse.setResult(true);
+
+        if (isIndexing) {
+            indexingResponse.setResult(false);
+            indexingResponse.setError("Индексация уже запущена");
+            return indexingResponse;
+        }
+
+        isIndexing = true;
+        try {
+            List<LinkFinderTask> tasks = new ArrayList<>();
+            siteRepository.deleteAll();
+            for (SiteConfig siteConfig : sitesList.getSites()) {
+                String url = siteConfig.getUrl();
+                siteRepository.deleteByUrl(url);
+
+                Site site = new Site();
+                site.setName(siteConfig.getName());
+                site.setUrl(siteConfig.getUrl());
+                site.setStatus(SiteStatus.INDEXING);
+                site.setStatusTime(LocalDateTime.now());
+                siteRepository.save(site);
+
+                Set<String> cache = new HashSet<>();
+                LinkFinderTask task = new LinkFinderTask(site, url, url, cache, pageRepository, siteRepository);
+                tasks.add(task);
+            }
+
+            ForkJoinPool[] pools = new ForkJoinPool[3];
+            for (int i = 0; i < pools.length; i++) {
+                pools[i] = new ForkJoinPool();
+            }
+
+            Thread[] threads = new Thread[pools.length];
+            for (int i = 0; i < pools.length; i++) {
+                final int index = i;
+                threads[i] = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        pools[index].invoke(tasks.get(index));
+                    }
+                });
+                threads[i].start();
+            }
+
+
+            forkJoinPool.invoke(tasks.get(0));
+            indexingResponse.setResult(true);
+        } catch (Exception e) {
+            indexingResponse.setResult(false);
+            indexingResponse.setError("Возникла ошибка: " + e.getMessage());
+        } finally {
+            isIndexing = false;
+        }
         return indexingResponse;
     }
 }
