@@ -59,8 +59,9 @@ public class LinkFinderTask extends RecursiveAction {
                     .execute();
             Document document = response.parse();
 
+            String path = currentLink == root ? "/" : currentLink.substring(root.length());
             Page page = new Page();
-            page.setPath(currentLink);
+            page.setPath(path);
             page.setCode(response.statusCode());
             page.setContent(document.toString());
             page.setSite(site);

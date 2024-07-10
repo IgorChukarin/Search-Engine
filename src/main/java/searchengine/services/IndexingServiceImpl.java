@@ -77,7 +77,6 @@ public class IndexingServiceImpl implements IndexingService{
                 threads[i].start();
             }
 
-
             forkJoinPool.invoke(tasks.get(0));
             indexingResponse.setResult(true);
         } catch (Exception e) {
