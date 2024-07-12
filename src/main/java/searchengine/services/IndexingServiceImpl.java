@@ -36,9 +36,8 @@ public class IndexingServiceImpl implements IndexingService{
             return new IndexingResponse(false, "Индексация уже запущена");
         }
         isIndexing = true;
-
         try {
-            List<LinkFinderTask> tasks = new ArrayList<>();
+            List<LinkFinderAction> actions = new ArrayList<>();
             for (SiteConfig siteConfig : sitesList.getSites()) {
                 String url = siteConfig.getUrl();
                 siteRepository.deleteByUrl(url);
@@ -51,34 +50,31 @@ public class IndexingServiceImpl implements IndexingService{
                 siteRepository.save(site);
 
                 Set<String> cache = new HashSet<>();
-                LinkFinderTask linkFinderTask = new LinkFinderTask(site, url, url, cache, pageRepository, siteRepository);
-                tasks.add(linkFinderTask);
+                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository);
+                actions.add(linkFinderAction);
             }
 
             List<RunnableFuture<String>> futureTasks = new ArrayList<>();
-            for (LinkFinderTask task : tasks) {
-                futureTasks.add(createFutureTask(task));
+            for (LinkFinderAction action : actions) {
+                futureTasks.add(createFutureTask(action));
             }
 
             ExecutorService executor = Executors.newFixedThreadPool(4);
             futureTasks.forEach(executor::execute);
-
-            ResultCheckerExample resultCheckerExample = new ResultCheckerExample(futureTasks, siteRepository);
+            SiteIndexingResultHandler resultCheckerExample = new SiteIndexingResultHandler(futureTasks, siteRepository);
             executor.execute(resultCheckerExample);
-
             executor.shutdown();
-
             indexingResponse.setResult(true);
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             indexingResponse.setResult(false);
             indexingResponse.setError("Возникла ошибка в indexing service");
         }
-
         return indexingResponse;
     }
 
-    private RunnableFuture<String> createFutureTask(LinkFinderTask linkFinderTask) {
-        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoinPool(linkFinderTask), linkFinderTask.getSite().getUrl());
+    private RunnableFuture<String> createFutureTask(LinkFinderAction linkFinderTask) {
+        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoin(linkFinderTask), linkFinderTask.getSite().getUrl());
         return future;
     }
 }

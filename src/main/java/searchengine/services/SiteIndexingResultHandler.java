@@ -9,12 +9,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RunnableFuture;
 
-public class ResultCheckerExample implements Runnable{
+public class SiteIndexingResultHandler implements Runnable{
 
     private final List<RunnableFuture<String>> runnableFutureList;
     private final SiteRepository siteRepository;
 
-    public ResultCheckerExample(List<RunnableFuture<String>> runnableFutureList, SiteRepository siteRepository) {
+    public SiteIndexingResultHandler(List<RunnableFuture<String>> runnableFutureList, SiteRepository siteRepository) {
         this.runnableFutureList = runnableFutureList;
         this.siteRepository = siteRepository;
     }
