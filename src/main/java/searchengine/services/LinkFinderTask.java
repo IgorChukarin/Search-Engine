@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
@@ -21,6 +22,7 @@ import java.util.concurrent.RecursiveAction;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
+@Getter
 public class LinkFinderTask extends RecursiveAction {
     private Site site;
     private String root;
@@ -34,7 +36,6 @@ public class LinkFinderTask extends RecursiveAction {
 
     @Override
     protected void compute() {
-        System.out.println(currentLink);
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderTask> taskList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
@@ -46,7 +47,6 @@ public class LinkFinderTask extends RecursiveAction {
             task.join();
         }
     }
-
 
     public List<String> findNestedLinks(String currentLink) {
         String fullLinkRegex = currentLink + pathRegex;
@@ -87,6 +87,8 @@ public class LinkFinderTask extends RecursiveAction {
                 }
             }
         } catch (IOException | InterruptedException e) {
+            site.setLastError("Возникла ошибка: " + e.getMessage());
+            siteRepository.save(site);
             throw new RuntimeException(e);
         }
         return nestedLinks;

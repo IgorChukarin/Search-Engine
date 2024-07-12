@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,19 +31,14 @@ public class IndexingServiceImpl implements IndexingService{
 
     @Override
     public IndexingResponse startIndexing() {
-
         IndexingResponse indexingResponse = new IndexingResponse();
-
         if (isIndexing) {
-            indexingResponse.setResult(false);
-            indexingResponse.setError("Индексация уже запущена");
-            return indexingResponse;
+            return new IndexingResponse(false, "Индексация уже запущена");
         }
-
         isIndexing = true;
+
         try {
             List<LinkFinderTask> tasks = new ArrayList<>();
-            siteRepository.deleteAll();
             for (SiteConfig siteConfig : sitesList.getSites()) {
                 String url = siteConfig.getUrl();
                 siteRepository.deleteByUrl(url);
@@ -56,35 +51,34 @@ public class IndexingServiceImpl implements IndexingService{
                 siteRepository.save(site);
 
                 Set<String> cache = new HashSet<>();
-                LinkFinderTask task = new LinkFinderTask(site, url, url, cache, pageRepository, siteRepository);
-                tasks.add(task);
+                LinkFinderTask linkFinderTask = new LinkFinderTask(site, url, url, cache, pageRepository, siteRepository);
+                tasks.add(linkFinderTask);
             }
 
-            ForkJoinPool[] pools = new ForkJoinPool[3];
-            for (int i = 0; i < pools.length; i++) {
-                pools[i] = new ForkJoinPool();
+            List<RunnableFuture<String>> futureTasks = new ArrayList<>();
+            for (LinkFinderTask task : tasks) {
+                futureTasks.add(createFutureTask(task));
             }
 
-            Thread[] threads = new Thread[pools.length];
-            for (int i = 0; i < pools.length; i++) {
-                final int index = i;
-                threads[i] = new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        pools[index].invoke(tasks.get(index));
-                    }
-                });
-                threads[i].start();
-            }
+            ExecutorService executor = Executors.newFixedThreadPool(4);
+            futureTasks.forEach(executor::execute);
 
-            forkJoinPool.invoke(tasks.get(0));
+            ResultCheckerExample resultCheckerExample = new ResultCheckerExample(futureTasks, siteRepository);
+            executor.execute(resultCheckerExample);
+
+            executor.shutdown();
+
             indexingResponse.setResult(true);
         } catch (Exception e) {
             indexingResponse.setResult(false);
-            indexingResponse.setError("Возникла ошибка: " + e.getMessage());
-        } finally {
-            isIndexing = false;
+            indexingResponse.setError("Возникла ошибка в indexing service");
         }
+
         return indexingResponse;
+    }
+
+    private RunnableFuture<String> createFutureTask(LinkFinderTask linkFinderTask) {
+        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoinPool(linkFinderTask), linkFinderTask.getSite().getUrl());
+        return future;
     }
 }
