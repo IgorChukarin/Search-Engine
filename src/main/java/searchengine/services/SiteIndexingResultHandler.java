@@ -39,6 +39,5 @@ public class SiteIndexingResultHandler implements Runnable{
                 }
             }
         }
-
     }
 }

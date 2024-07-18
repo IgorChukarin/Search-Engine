@@ -27,6 +27,8 @@ public class IndexingServiceImpl implements IndexingService{
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
 
+    private final PageService pageService;
+
     private volatile boolean isIndexing = false;
 
     @Override
@@ -50,7 +52,7 @@ public class IndexingServiceImpl implements IndexingService{
                 siteRepository.save(site);
 
                 Set<String> cache = new HashSet<>();
-                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository);
+                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository, pageService);
                 actions.add(linkFinderAction);
             }
 
@@ -69,6 +71,7 @@ public class IndexingServiceImpl implements IndexingService{
         catch (Exception e) {
             indexingResponse.setResult(false);
             indexingResponse.setError("Возникла ошибка в indexing service");
+            e.printStackTrace();
         }
         return indexingResponse;
     }

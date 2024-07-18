@@ -10,6 +10,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import searchengine.model.Page;
 import searchengine.model.Site;
+import searchengine.model.SiteStatus;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.RecursiveAction;
 
 @AllArgsConstructor
@@ -31,21 +33,22 @@ public class LinkFinderAction extends RecursiveAction {
     private final PageRepository pageRepository;
     private final SiteRepository siteRepository;
 
+    private final PageService pageService;
+
     private final String pathRegex = "^/[^#]+$";
     private final String imageRegex = "^.*\\.(jpe?g|png|gif|bmp)$";
-
 
     @Override
     protected void compute() {
         List<String> nestedLinks = findNestedLinks(currentLink);
-        List<LinkFinderAction> taskList = new ArrayList<>();
+        List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            LinkFinderAction task = new LinkFinderAction(site, root, nestedLink, cache, pageRepository, siteRepository);
-            task.fork();
-            taskList.add(task);
+            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, cache, pageRepository, siteRepository, pageService);
+            action.fork();
+            actionList.add(action);
         }
-        for (LinkFinderAction task : taskList) {
-            task.join();
+        for (LinkFinderAction action : actionList) {
+            action.join();
         }
     }
 
@@ -55,15 +58,21 @@ public class LinkFinderAction extends RecursiveAction {
             Thread.sleep(1000);
             Connection.Response response = connectByUrl(currentLink);
             Document document = response.parse();
+
+            String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
+            Integer code = response.statusCode();
+            String content = document.toString();
+
+            synchronized (pageService) {
+                pageService.save(path, code, content, site);
+            }
+
             Elements elements = document.select("a[href]");
             List<String> nestedLinks = extractLinks(elements);
-            saveCurrentPage(document, response);
             updateSiteStatusTime();
             return nestedLinks;
         }
         catch (IOException | InterruptedException e) {
-            site.setLastError("Возникла ошибка: " + e.getMessage());
-            siteRepository.save(site);
             throw new RuntimeException(e);
         }
     }
@@ -81,28 +90,14 @@ public class LinkFinderAction extends RecursiveAction {
         ArrayList<String> extractedLinks = new ArrayList<>();
         for (Element element : elements) {
             String link = element.attr("href");
-            if (link.matches(imageRegex)) {
+            if (link.matches(imageRegex) || !link.matches(pathRegex)) {
                 continue;
             }
-            if (!link.matches(pathRegex)) {
-                continue;
-            }
-            if (cache.add(link)) {
+            if (!pageService.existsByPathAndSiteId(link, site.getId())) {
                 extractedLinks.add(root.concat(link));
             }
         }
         return extractedLinks;
-    }
-
-
-    private void saveCurrentPage(Document document, Connection.Response response) {
-        String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
-        Page page = new Page();
-        page.setPath(path);
-        page.setCode(response.statusCode());
-        page.setContent(document.toString());
-        page.setSite(site);
-        pageRepository.save(page);
     }
 
 

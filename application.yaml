@@ -16,8 +16,8 @@ spring:
 
 indexing-settings:
   sites:
-#    - url: https://legalxlator.com/
-#      name: Legalxlator
+    - url: https://legalxlator.com/
+      name: Legalxlator
 #    - url: https://www.lenta.ru
 #      name: Лента.ру
 #    - url: https://www.skillbox.ru
