@@ -24,3 +24,7 @@ indexing-settings:
 #      name: Skillbox
     - url: https://www.playback.ru
       name: PlayBack.Ru
+
+jsoup-connection:
+  userAgent: ChukarinSearchBot
+  referrer: http://www.google.com

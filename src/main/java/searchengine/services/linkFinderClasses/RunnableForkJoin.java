@@ -1,10 +1,12 @@
-package searchengine.services;
+package searchengine.services.linkFinderClasses;
+
+import searchengine.services.linkFinderClasses.LinkFinderAction;
 
 import java.util.concurrent.ForkJoinPool;
 
 public class RunnableForkJoin implements Runnable{
     private LinkFinderAction linkFinderAction;
-    private ForkJoinPool forkJoinPool = new ForkJoinPool();
+    private ForkJoinPool forkJoinPool = new ForkJoinPool(4);
 
     public RunnableForkJoin(LinkFinderAction linkFinderAction) {
         this.linkFinderAction = linkFinderAction;

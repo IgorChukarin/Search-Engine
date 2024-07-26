@@ -9,10 +9,12 @@ import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
+import searchengine.services.linkFinderClasses.LinkFinderAction;
+import searchengine.services.linkFinderClasses.RunnableForkJoin;
+import searchengine.services.linkFinderClasses.SiteIndexingResultHandler;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -22,7 +24,6 @@ import java.util.concurrent.*;
 public class IndexingServiceImpl implements IndexingService{
 
     private final SitesListConfig sitesList;
-    private final ForkJoinPool forkJoinPool = new ForkJoinPool();
 
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
@@ -30,6 +31,8 @@ public class IndexingServiceImpl implements IndexingService{
     private final PageService pageService;
 
     private volatile boolean isIndexing = false;
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     @Override
     public IndexingResponse startIndexing() {
@@ -51,7 +54,7 @@ public class IndexingServiceImpl implements IndexingService{
                 site.setStatusTime(LocalDateTime.now());
                 siteRepository.save(site);
 
-                Set<String> cache = new HashSet<>();
+                Set<String> cache = ConcurrentHashMap.newKeySet();
                 LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository, pageService);
                 actions.add(linkFinderAction);
             }
@@ -61,9 +64,9 @@ public class IndexingServiceImpl implements IndexingService{
                 futureTasks.add(createFutureTask(action));
             }
 
-            ExecutorService executor = Executors.newFixedThreadPool(4);
             futureTasks.forEach(executor::execute);
             SiteIndexingResultHandler resultCheckerExample = new SiteIndexingResultHandler(futureTasks, siteRepository);
+
             executor.execute(resultCheckerExample);
             executor.shutdown();
             indexingResponse.setResult(true);
@@ -71,6 +74,7 @@ public class IndexingServiceImpl implements IndexingService{
         catch (Exception e) {
             indexingResponse.setResult(false);
             indexingResponse.setError("Возникла ошибка в indexing service");
+
             e.printStackTrace();
         }
         return indexingResponse;
@@ -79,5 +83,10 @@ public class IndexingServiceImpl implements IndexingService{
     private RunnableFuture<String> createFutureTask(LinkFinderAction linkFinderTask) {
         RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoin(linkFinderTask), linkFinderTask.getSite().getUrl());
         return future;
+    }
+
+
+    public IndexingResponse stopIndexing() {
+        return new IndexingResponse();
     }
 }
