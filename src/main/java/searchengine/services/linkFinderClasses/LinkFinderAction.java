@@ -9,6 +9,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.factory.annotation.Value;
+import searchengine.config.JsoupConfig;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.PageRepository;
@@ -31,10 +32,11 @@ public class LinkFinderAction extends RecursiveAction {
     private String root;
     private String currentLink;
     private Set<String> cache;
+
     private final PageRepository pageRepository;
     private final SiteRepository siteRepository;
-
     private final PageService pageService;
+    private final JsoupConfig jsoupConfig;
 
     private final String pathRegex = "^/[^#]+$";
     private final String imageRegex = "^.*\\.(jpe?g|png|gif|bmp)$";
@@ -45,7 +47,7 @@ public class LinkFinderAction extends RecursiveAction {
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, cache, pageRepository, siteRepository, pageService);
+            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, cache, pageRepository, siteRepository, pageService, jsoupConfig);
             action.fork();
             actionList.add(action);
         }
@@ -64,7 +66,10 @@ public class LinkFinderAction extends RecursiveAction {
             String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
             Integer code = response.statusCode();
             String content = document.toString();
-            pageService.save(path, code, content, site);
+
+            synchronized (pageService) {
+                pageService.save(path, code, content, site);
+            }
 
             Elements elements = document.select("a[href]");
             List<String> nestedLinks = extractLinks(elements);
@@ -86,8 +91,8 @@ public class LinkFinderAction extends RecursiveAction {
 
     private Connection.Response connectByUrl(String url) throws IOException {
         return Jsoup.connect(url)
-                .userAgent("ChukarinSearchBot")
-                .referrer("http://www.google.com")
+                .userAgent(jsoupConfig.getUserAgent())
+                .referrer(jsoupConfig.getReferrer())
                 .execute();
     }
 
@@ -99,7 +104,7 @@ public class LinkFinderAction extends RecursiveAction {
             if (link.matches(imageRegex) || !link.matches(pathRegex)) {
                 continue;
             }
-            if (cache.add(link)) {
+            if (!pageService.existsByPathAndSiteId(link, site.getId())) {
                 extractedLinks.add(root.concat(link));
             }
         }

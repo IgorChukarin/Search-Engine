@@ -2,6 +2,7 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import searchengine.config.JsoupConfig;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesListConfig;
 import searchengine.dto.indexing.IndexingResponse;
@@ -27,8 +28,8 @@ public class IndexingServiceImpl implements IndexingService{
 
     private final SiteRepository siteRepository;
     private final PageRepository pageRepository;
-
     private final PageService pageService;
+    private final JsoupConfig jsoupConfig;
 
     private volatile boolean isIndexing = false;
 
@@ -55,7 +56,7 @@ public class IndexingServiceImpl implements IndexingService{
                 siteRepository.save(site);
 
                 Set<String> cache = ConcurrentHashMap.newKeySet();
-                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository, pageService);
+                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, cache, pageRepository, siteRepository, pageService, jsoupConfig);
                 actions.add(linkFinderAction);
             }
 
