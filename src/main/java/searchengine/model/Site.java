@@ -17,6 +17,13 @@ import java.util.List;
 @Table(name = "site")
 public class Site {
 
+    public Site(SiteStatus status, LocalDateTime statusTime, String url, String name) {
+        this.status = status;
+        this.statusTime = statusTime;
+        this.url = url;
+        this.name = name;
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)

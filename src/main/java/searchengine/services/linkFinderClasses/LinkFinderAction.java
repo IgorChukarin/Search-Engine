@@ -15,6 +15,7 @@ import searchengine.model.SiteStatus;
 import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.PageService;
+import searchengine.services.SiteService;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -31,11 +32,10 @@ public class LinkFinderAction extends RecursiveAction {
     private Site site;
     private String root;
     private String currentLink;
-    private Set<String> cache;
 
-    private final PageRepository pageRepository;
-    private final SiteRepository siteRepository;
+    private final SiteService siteService;
     private final PageService pageService;
+
     private final JsoupConfig jsoupConfig;
 
     private final String pathRegex = "^/[^#]+$";
@@ -47,7 +47,7 @@ public class LinkFinderAction extends RecursiveAction {
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, cache, pageRepository, siteRepository, pageService, jsoupConfig);
+            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
             action.fork();
             actionList.add(action);
         }
@@ -83,7 +83,7 @@ public class LinkFinderAction extends RecursiveAction {
                 site.setLastError("Не удалось подключиться к сайту");
             }
             site.setStatus(SiteStatus.FAILED);
-            siteRepository.save(site);
+            siteService.save(site);
             throw new RuntimeException(e);
         }
     }
@@ -113,6 +113,6 @@ public class LinkFinderAction extends RecursiveAction {
 
     private void updateSiteStatusTime() {
         site.setStatusTime(LocalDateTime.now());
-        siteRepository.save(site);
+        siteService.save(site);
     }
 }
