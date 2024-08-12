@@ -1,5 +1,6 @@
 package searchengine.services.linkFinderClasses;
 
+import lombok.RequiredArgsConstructor;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.SiteRepository;
@@ -9,15 +10,11 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RunnableFuture;
 
+@RequiredArgsConstructor
 public class SiteIndexingResultHandler implements Runnable{
 
     private final List<RunnableFuture<String>> runnableFutureList;
     private final SiteRepository siteRepository;
-
-    public SiteIndexingResultHandler(List<RunnableFuture<String>> runnableFutureList, SiteRepository siteRepository) {
-        this.runnableFutureList = runnableFutureList;
-        this.siteRepository = siteRepository;
-    }
 
     @Override
     public void run() {

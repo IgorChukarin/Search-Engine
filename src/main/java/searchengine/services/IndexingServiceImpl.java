@@ -8,7 +8,6 @@ import searchengine.config.SitesListConfig;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
-import searchengine.repositories.PageRepository;
 import searchengine.repositories.SiteRepository;
 import searchengine.services.linkFinderClasses.LinkFinderAction;
 import searchengine.services.linkFinderClasses.RunnableForkJoin;
@@ -17,13 +16,12 @@ import searchengine.services.linkFinderClasses.SiteIndexingResultHandler;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService{
-
+    private ArrayList<LinkFinderAction> runningActions = new ArrayList<>();
     private final SitesListConfig sitesList;
     private final SiteRepository siteRepository;
     private final SiteService siteService;
@@ -47,9 +45,9 @@ public class IndexingServiceImpl implements IndexingService{
                 siteService.deleteByUrl(url);
                 Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
                 siteService.save(site);
-
-                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, siteService, pageService, jsoupConfig);
+                LinkFinderAction linkFinderAction = new LinkFinderAction(false, site, url, url, siteService, pageService, jsoupConfig);
                 actions.add(linkFinderAction);
+                runningActions.add(linkFinderAction);
             }
 
             List<RunnableFuture<String>> futureTasks = new ArrayList<>();
@@ -74,13 +72,18 @@ public class IndexingServiceImpl implements IndexingService{
     }
 
 
-    private RunnableFuture<String> createFutureTask(LinkFinderAction linkFinderTask) {
-        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoin(linkFinderTask), linkFinderTask.getSite().getUrl());
+    private RunnableFuture<String> createFutureTask(LinkFinderAction linkFinderAction) {
+        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoin(linkFinderAction), linkFinderAction.getSite().getUrl());
         return future;
     }
 
 
+    @Override
     public IndexingResponse stopIndexing() {
+        for (LinkFinderAction linkFinderAction : runningActions) {
+            linkFinderAction.setStopAction(true);
+        }
+        isIndexing = false;
         return new IndexingResponse();
     }
 }

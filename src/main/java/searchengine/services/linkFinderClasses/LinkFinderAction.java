@@ -3,6 +3,7 @@ package searchengine.services.linkFinderClasses;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -28,14 +29,16 @@ import java.util.concurrent.RecursiveAction;
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Getter
+@Setter
 public class LinkFinderAction extends RecursiveAction {
+    private boolean stopAction;
+
     private Site site;
     private String root;
     private String currentLink;
 
     private final SiteService siteService;
     private final PageService pageService;
-
     private final JsoupConfig jsoupConfig;
 
     private final String pathRegex = "^/[^#]+$";
@@ -44,10 +47,17 @@ public class LinkFinderAction extends RecursiveAction {
 
     @Override
     protected void compute() {
+        System.out.println(currentLink + " " + stopAction);
+        if (stopAction) {
+            return;
+        }
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
+            if (stopAction) {
+                break;
+            }
+            LinkFinderAction action = new LinkFinderAction(false, site, root, nestedLink, siteService, pageService, jsoupConfig);
             action.fork();
             actionList.add(action);
         }
@@ -58,6 +68,9 @@ public class LinkFinderAction extends RecursiveAction {
 
 
     public List<String> findNestedLinks(String currentLink) {
+        if (stopAction) {
+            return new ArrayList<>();
+        }
         try {
             Thread.sleep(1000);
             Connection.Response response = connectByUrl(currentLink);
@@ -68,6 +81,9 @@ public class LinkFinderAction extends RecursiveAction {
             String content = document.toString();
 
             synchronized (pageService) {
+                if (stopAction) {
+                    return new ArrayList<>();
+                }
                 pageService.save(path, code, content, site);
             }
 

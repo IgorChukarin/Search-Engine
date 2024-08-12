@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class SiteServiceImpl implements SiteService{
 
     private final SiteRepository siteRepository;
-    
+
     @Override
     public void save(Site site) {
         siteRepository.save(site);
