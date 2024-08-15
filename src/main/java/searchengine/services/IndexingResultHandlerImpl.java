@@ -1,20 +1,27 @@
-package searchengine.services.linkFinderClasses;
+package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.SiteRepository;
+import searchengine.services.IndexingResultHandler;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.RunnableFuture;
 
+@Service
 @RequiredArgsConstructor
-public class SiteIndexingResultHandler implements Runnable{
+public class IndexingResultHandlerImpl implements IndexingResultHandler {
 
-    private final List<RunnableFuture<String>> runnableFutureList;
+    private List<RunnableFuture<String>> runnableFutureList;
     private final SiteRepository siteRepository;
+
+    public void setRunnableFutureList(List<RunnableFuture<String>> runnableFutureList) {
+        this.runnableFutureList = runnableFutureList;
+    }
 
     @Override
     public void run() {

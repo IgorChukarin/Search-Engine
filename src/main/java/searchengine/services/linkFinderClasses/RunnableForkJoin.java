@@ -3,6 +3,7 @@ package searchengine.services.linkFinderClasses;
 import searchengine.services.linkFinderClasses.LinkFinderAction;
 
 import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RunnableForkJoin implements Runnable{
     private LinkFinderAction linkFinderAction;

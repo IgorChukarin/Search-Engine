@@ -25,13 +25,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Getter
 @Setter
 public class LinkFinderAction extends RecursiveAction {
-    private boolean stopAction;
+    private AtomicBoolean stopAction;
 
     private Site site;
     private String root;
@@ -48,16 +49,16 @@ public class LinkFinderAction extends RecursiveAction {
     @Override
     protected void compute() {
         System.out.println(currentLink + " " + stopAction);
-        if (stopAction) {
+        if (stopAction.get()) {
             return;
         }
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            if (stopAction) {
+            if (stopAction.get()) {
                 break;
             }
-            LinkFinderAction action = new LinkFinderAction(false, site, root, nestedLink, siteService, pageService, jsoupConfig);
+            LinkFinderAction action = new LinkFinderAction(new AtomicBoolean(false), site, root, nestedLink, siteService, pageService, jsoupConfig);
             action.fork();
             actionList.add(action);
         }
@@ -68,7 +69,7 @@ public class LinkFinderAction extends RecursiveAction {
 
 
     public List<String> findNestedLinks(String currentLink) {
-        if (stopAction) {
+        if (stopAction.get()) {
             return new ArrayList<>();
         }
         try {
@@ -81,7 +82,7 @@ public class LinkFinderAction extends RecursiveAction {
             String content = document.toString();
 
             synchronized (pageService) {
-                if (stopAction) {
+                if (stopAction.get()) {
                     return new ArrayList<>();
                 }
                 pageService.save(path, code, content, site);
