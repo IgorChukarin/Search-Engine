@@ -9,6 +9,7 @@ import searchengine.dto.indexing.IndexingResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.SiteRepository;
+import searchengine.services.linkFinderClasses.ControlThread;
 import searchengine.services.linkFinderClasses.LinkFinderAction;
 import searchengine.services.linkFinderClasses.RunnableForkJoin;
 
@@ -53,7 +54,14 @@ public class IndexingServiceImpl implements IndexingService{
                 RunnableFuture<String> runnableFutureTask = createFutureTask(action);
                 futureTasks.add(runnableFutureTask);
             }
-            futureTasks.forEach(executor::execute);
+
+
+            //futureTasks.forEach(executor::execute); // future task можно превратить в thread
+
+            RunnableFuture<String> futureTask = futureTasks.get(0);
+            ControlThread controlThread = new ControlThread(1000, futureTask);
+            controlThread.start();
+
 
             indexingResultHandler.setRunnableFutureList(futureTasks);
             executor.execute(indexingResultHandler);
