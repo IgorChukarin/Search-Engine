@@ -9,30 +9,24 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Value;
 import searchengine.config.JsoupConfig;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
-import searchengine.repositories.PageRepository;
-import searchengine.repositories.SiteRepository;
 import searchengine.services.PageService;
 import searchengine.services.SiteService;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Getter
 @Setter
 public class LinkFinderAction extends RecursiveAction {
-    private static boolean stopAction;
+    private static volatile boolean stopAction;
 
     private Site site;
     private String root;
@@ -48,7 +42,6 @@ public class LinkFinderAction extends RecursiveAction {
 
     @Override
     protected void compute() {
-        System.out.println(currentLink + " " + stopAction);
         if (stopAction) {
             return;
         }
@@ -133,7 +126,11 @@ public class LinkFinderAction extends RecursiveAction {
         siteService.save(site);
     }
 
-    public static void stopFinding() {
+    public static void lockAction() {
         stopAction = true;
+    }
+
+    public static void unlockAction() {
+        stopAction = false;
     }
 }

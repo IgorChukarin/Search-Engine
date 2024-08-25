@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.Site;
@@ -21,6 +22,8 @@ public class SiteServiceImpl implements SiteService{
     }
 
     @Override
+    @Async
+    @Transactional
     public void deleteByUrl(String url) {
         siteRepository.deleteByUrl(url);
     }
