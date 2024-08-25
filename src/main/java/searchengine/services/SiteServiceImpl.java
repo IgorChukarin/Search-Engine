@@ -23,4 +23,9 @@ public class SiteServiceImpl implements SiteService{
     public void deleteByUrl(String url) {
         siteRepository.deleteByUrl(url);
     }
+
+    @Override
+    public Site findByUrl(String url) {
+        return siteRepository.findByUrl(url);
+    }
 }

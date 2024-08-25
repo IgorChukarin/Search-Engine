@@ -29,6 +29,8 @@ public class IndexingServiceImpl implements IndexingService{
     private volatile boolean isIndexing = false;
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private final IndexingResultHandler indexingResultHandler;
+    private List<LinkFinderAction> actions = new ArrayList<>();
+
 
     @Override
     public IndexingResponse startIndexing() {
@@ -39,13 +41,12 @@ public class IndexingServiceImpl implements IndexingService{
             isIndexing = true;
         }
         try {
-            List<LinkFinderAction> actions = new ArrayList<>();
             for (SiteConfig siteConfig : sitesList.getSites()) {
                 String url = siteConfig.getUrl();
                 siteService.deleteByUrl(url);
                 Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
                 siteService.save(site);
-                LinkFinderAction linkFinderAction = new LinkFinderAction(new AtomicBoolean(false), site, url, url, siteService, pageService, jsoupConfig);
+                LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, siteService, pageService, jsoupConfig);
                 actions.add(linkFinderAction);
             }
 
@@ -56,11 +57,11 @@ public class IndexingServiceImpl implements IndexingService{
             }
 
 
-            //futureTasks.forEach(executor::execute); // future task можно превратить в thread
+            futureTasks.forEach(executor::execute); // future task можно превратить в thread
 
-            RunnableFuture<String> futureTask = futureTasks.get(0);
-            ControlThread controlThread = new ControlThread(1000, futureTask);
-            controlThread.start();
+//            RunnableFuture<String> futureTask = futureTasks.get(0);
+//            ControlThread controlThread = new ControlThread(1000, futureTask);
+//            controlThread.start();
 
 
             indexingResultHandler.setRunnableFutureList(futureTasks);
@@ -81,7 +82,15 @@ public class IndexingServiceImpl implements IndexingService{
 
     @Override
     public IndexingResponse stopIndexing() {
-
+        LinkFinderAction.stopFinding();
+        for (SiteConfig siteConfig : sitesList.getSites()) {
+            String url = siteConfig.getUrl();
+            Site site = siteService.findByUrl(url);
+            if (site.getStatus() != SiteStatus.INDEXED) {
+                site.setStatus(SiteStatus.FAILED);
+            }
+            siteService.save(site);
+        }
         return new IndexingResponse();
     }
 

@@ -32,7 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Getter
 @Setter
 public class LinkFinderAction extends RecursiveAction {
-    private AtomicBoolean stopAction;
+    private static boolean stopAction;
 
     private Site site;
     private String root;
@@ -49,16 +49,16 @@ public class LinkFinderAction extends RecursiveAction {
     @Override
     protected void compute() {
         System.out.println(currentLink + " " + stopAction);
-        if (stopAction.get()) {
+        if (stopAction) {
             return;
         }
         List<String> nestedLinks = findNestedLinks(currentLink);
         List<LinkFinderAction> actionList = new ArrayList<>();
         for (String nestedLink : nestedLinks) {
-            if (stopAction.get()) {
+            if (stopAction) {
                 break;
             }
-            LinkFinderAction action = new LinkFinderAction(new AtomicBoolean(false), site, root, nestedLink, siteService, pageService, jsoupConfig);
+            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
             action.fork();
             actionList.add(action);
         }
@@ -69,7 +69,7 @@ public class LinkFinderAction extends RecursiveAction {
 
 
     public List<String> findNestedLinks(String currentLink) {
-        if (stopAction.get()) {
+        if (stopAction) {
             return new ArrayList<>();
         }
         try {
@@ -82,7 +82,7 @@ public class LinkFinderAction extends RecursiveAction {
             String content = document.toString();
 
             synchronized (pageService) {
-                if (stopAction.get()) {
+                if (stopAction) {
                     return new ArrayList<>();
                 }
                 pageService.save(path, code, content, site);
@@ -131,5 +131,9 @@ public class LinkFinderAction extends RecursiveAction {
     private void updateSiteStatusTime() {
         site.setStatusTime(LocalDateTime.now());
         siteService.save(site);
+    }
+
+    public static void stopFinding() {
+        stopAction = true;
     }
 }
