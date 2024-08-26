@@ -78,7 +78,7 @@ public class LinkFinderAction extends RecursiveAction {
                 if (stopAction) {
                     return new ArrayList<>();
                 }
-                pageService.save(path, code, content, site);
+                pageService.saveIfNotExist(path, code, content, site);
             }
 
             Elements elements = document.select("a[href]");

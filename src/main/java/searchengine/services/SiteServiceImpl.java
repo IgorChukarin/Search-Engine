@@ -16,10 +16,12 @@ public class SiteServiceImpl implements SiteService{
 
     private final SiteRepository siteRepository;
 
+
     @Override
     public void save(Site site) {
         siteRepository.save(site);
     }
+
 
     @Override
     @Async
@@ -27,6 +29,7 @@ public class SiteServiceImpl implements SiteService{
     public void deleteByUrl(String url) {
         siteRepository.deleteByUrl(url);
     }
+
 
     @Override
     public Site findByUrl(String url) {
