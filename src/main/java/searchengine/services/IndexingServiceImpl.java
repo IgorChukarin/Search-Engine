@@ -104,18 +104,33 @@ public class IndexingServiceImpl implements IndexingService{
 
     @Override
     public IndexingResponse stopIndexing() {
-        IndexingResponse indexingResponse = new IndexingResponse();
+        if (!canStopIndexing()) {
+            return new IndexingResponse(false, "Индексация не запущена");
+        }
         LinkFinderAction.lockAction();
+        changeUnfinishedSiteStatus();
+        return new IndexingResponse(true, "");
+    }
+
+
+    private boolean canStopIndexing() {
+        if (!isIndexing) {
+            return false;
+        } else {
+            isIndexing = false;
+            return true;
+        }
+    }
+
+
+    private void changeUnfinishedSiteStatus() {
         for (SiteConfig siteConfig : sitesList.getSites()) {
             String url = siteConfig.getUrl();
             Site site = siteService.findByUrl(url);
-            if (site.getStatus() != SiteStatus.INDEXED) {
+            if (site.getStatus() == SiteStatus.INDEXING) {
                 site.setStatus(SiteStatus.FAILED);
             }
             siteService.save(site);
         }
-        isIndexing = false;
-        indexingResponse.setResult(true);
-        return indexingResponse;
     }
 }
