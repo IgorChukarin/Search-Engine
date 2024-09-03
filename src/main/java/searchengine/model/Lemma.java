@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
+import java.util.List;
 
 @Entity
 @NoArgsConstructor
@@ -26,4 +27,7 @@ public class Lemma {
 
     @Column(name = "frequency", nullable = false)
     private Integer frequency;
+
+    @OneToMany(mappedBy = "lemma", cascade = CascadeType.ALL)
+    private List<SearchIndex> searchIndices;
 }
