@@ -31,7 +31,6 @@ public class IndexingServiceImpl implements IndexingService{
 
     @Override
     public IndexingResponse startIndexing() {
-        IndexingResponse indexingResponse = new IndexingResponse();
         if (!canStartIndexing()) {
             return new IndexingResponse(false, "Индексация уже запущена");
         }
@@ -40,14 +39,12 @@ public class IndexingServiceImpl implements IndexingService{
             List<LinkFinderAction> actions = prepareSitesForIndexing();
             List<RunnableFuture<String>> runnableFutureTasks = createAndSubmitTasks(actions);
             handleIndexingResults(runnableFutureTasks);
-            indexingResponse.setResult(true);
         }
         catch (Exception e) {
-            indexingResponse.setResult(false);
-            indexingResponse.setError("Ошибка в indexingService");
             e.printStackTrace();
+            return new IndexingResponse(false, "Ошибка в indexingService");
         }
-        return indexingResponse;
+        return new IndexingResponse(true, "");
     }
 
 
