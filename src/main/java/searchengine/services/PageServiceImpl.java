@@ -8,6 +8,8 @@ import searchengine.model.Page;
 import searchengine.model.Site;
 import searchengine.repositories.PageRepository;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class PageServiceImpl implements PageService{
@@ -26,5 +28,11 @@ public class PageServiceImpl implements PageService{
     @Override
     public boolean existsByPathAndSiteId(String path, Integer siteId) {
         return pageRepository.existsByPathAndSiteId(path, siteId);
+    }
+
+    @Override
+    public List<Page> findAllByPath(String path) {
+        List<Page> pages = pageRepository.findAllByPath(path);
+        return pages;
     }
 }

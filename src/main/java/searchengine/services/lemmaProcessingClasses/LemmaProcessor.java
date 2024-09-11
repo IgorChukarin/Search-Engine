@@ -1,0 +1,115 @@
+package searchengine.services.lemmaProcessingClasses;
+
+import lombok.RequiredArgsConstructor;
+import org.apache.lucene.morphology.LuceneMorphology;
+import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.springframework.stereotype.Service;
+import searchengine.dto.indexing.IndexingResponse;
+import searchengine.model.Page;
+import searchengine.services.PageService;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+@Service
+@RequiredArgsConstructor
+public class LemmaProcessor implements LemmaProcessorService {
+    private final PageService pageService;
+
+
+    public HashMap<String, Integer> countRussianLemmas(String content) {
+        Document document = Jsoup.parse(content);
+        String text = document.text().toLowerCase();
+        List<String> russianWordsWithServiceWords = extractRussianWords(text);
+        List<String> russianWords = removeServiceWords(russianWordsWithServiceWords);
+        HashMap<String, Integer> lemmasOccurrences = new HashMap<>();
+        for (String word : russianWords) {
+            List<String> baseForms = findBaseForms(word);
+            for (String form : baseForms) {
+                if (lemmasOccurrences.containsKey(form)) {
+                    lemmasOccurrences.put(form, lemmasOccurrences.get(form) + 1);
+                } else {
+                    lemmasOccurrences.put(form, 1);
+                }
+            }
+        }
+        return lemmasOccurrences;
+    }
+
+
+    private List<String> extractRussianWords(String text) {
+        Pattern russianWordPattern = Pattern.compile("[а-яА-ЯёЁ]+");
+        Matcher matcher = russianWordPattern.matcher(text);
+        List<String> russianWords = new ArrayList<>();
+        while (matcher.find()) {
+            russianWords.add(matcher.group());
+        }
+        return russianWords;
+    }
+
+
+    private List<String> removeServiceWords(List<String> russianWords) {
+        List<String> words = new ArrayList<>();
+        for (String word : russianWords) {
+            if (!isServiceWord(word)) {
+                words.add(word);
+            }
+        }
+        return words;
+    }
+
+
+    public boolean isServiceWord(String word) {
+        try {
+            LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+            List<String> wordBaseFormsInfo = luceneMorphology.getMorphInfo(word);
+            for (String info : wordBaseFormsInfo) {
+                if (info.contains("СОЮЗ") ||
+                        info.contains("ЧАСТ") ||
+                        info.contains("МЕЖД") ||
+                        info.contains("ПРЕДЛ") ||
+                        info.contains("МС")) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    private List<String> findBaseForms(String word) {
+        try {
+            LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
+            return luceneMorphology.getNormalForms(word);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
+    @Override
+    public IndexingResponse IndexPage(String url) {
+        List<Page> pages = pageService.findAllByPath(url);
+        for (Page page : pages) {
+            String content = page.getContent();
+            HashMap<String, Integer> hm = countRussianLemmas(content);
+            for (String key : hm.keySet()) {
+                System.out.println(key + " - " + hm.get(key) + " site id: " + page.getSite().getId());
+            }
+        }
+        return new IndexingResponse();
+    }
+
+
+
+}

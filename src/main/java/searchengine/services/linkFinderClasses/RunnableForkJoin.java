@@ -15,5 +15,6 @@ public class RunnableForkJoin implements Runnable{
     @Override
     public void run() {
         forkJoinPool.invoke(linkFinderAction);
+        forkJoinPool.shutdown();
     }
 }
