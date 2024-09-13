@@ -9,6 +9,8 @@ import searchengine.config.SitesListConfig;
 import searchengine.dto.indexing.IndexingResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
+import searchengine.services.RepositoryServices.PageService;
+import searchengine.services.RepositoryServices.SiteService;
 import searchengine.services.linkFinderClasses.LinkFinderAction;
 import searchengine.services.linkFinderClasses.RunnableForkJoin;
 

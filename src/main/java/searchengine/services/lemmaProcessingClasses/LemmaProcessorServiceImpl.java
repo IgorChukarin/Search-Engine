@@ -7,8 +7,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
 import searchengine.dto.indexing.IndexingResponse;
+import searchengine.model.Lemma;
 import searchengine.model.Page;
-import searchengine.services.PageService;
+import searchengine.services.RepositoryServices.LemmaService;
+import searchengine.services.RepositoryServices.PageService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,8 +21,9 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
-public class LemmaProcessor implements LemmaProcessorService {
+public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private final PageService pageService;
+    private final LemmaService lemmaService;
 
 
     public HashMap<String, Integer> countRussianLemmas(String content) {
@@ -104,12 +107,23 @@ public class LemmaProcessor implements LemmaProcessorService {
             String content = page.getContent();
             HashMap<String, Integer> hm = countRussianLemmas(content);
             for (String key : hm.keySet()) {
-                System.out.println(key + " - " + hm.get(key) + " site id: " + page.getSite().getId());
+                Integer siteId = page.getSite().getId();
+                if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
+                    Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
+                    Integer occurrences = lemma.getFrequency();
+                    lemma.setFrequency(occurrences);
+                    lemmaService.save(lemma);
+
+                } else {
+                    Lemma lemma = new Lemma();
+                    lemma.setLemma(key);
+                    lemma.setSite(page.getSite());
+                    lemma.setFrequency(1);
+                    lemmaService.save(lemma);
+
+                }
             }
         }
         return new IndexingResponse();
     }
-
-
-
 }

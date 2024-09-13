@@ -6,5 +6,6 @@ import searchengine.model.Lemma;
 
 @Repository
 public interface LemmaRepository extends JpaRepository<Lemma, Integer> {
-    
+    boolean existsByLemmaAndSiteId(String lemma, Integer siteId);
+    Lemma findByLemmaAndSiteId(String lemma, Integer siteId);
 }

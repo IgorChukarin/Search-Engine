@@ -1,14 +1,11 @@
-package searchengine.services;
+package searchengine.services.RepositoryServices;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.Site;
-import searchengine.model.SiteStatus;
 import searchengine.repositories.SiteRepository;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.services.RepositoryServices;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
