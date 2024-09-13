@@ -35,4 +35,9 @@ public class PageServiceImpl implements PageService{
         List<Page> pages = pageRepository.findAllByPath(path);
         return pages;
     }
+
+    @Override
+    public long count() {
+        return pageRepository.count();
+    }
 }

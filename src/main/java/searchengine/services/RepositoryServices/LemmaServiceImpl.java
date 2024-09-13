@@ -25,4 +25,9 @@ public class LemmaServiceImpl implements LemmaService{
     public void save(Lemma lemma) {
         lemmaRepository.save(lemma);
     }
+
+    @Override
+    public long count() {
+        return lemmaRepository.count();
+    }
 }
