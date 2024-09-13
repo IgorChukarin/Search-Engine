@@ -6,11 +6,13 @@ import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
-import searchengine.dto.indexing.IndexingResponse;
+import searchengine.dto.indexing.NegativeIndexingResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
+import searchengine.model.SearchIndex;
 import searchengine.services.RepositoryServices.LemmaService;
 import searchengine.services.RepositoryServices.PageService;
+import searchengine.services.RepositoryServices.SearchIndexService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,6 +26,7 @@ import java.util.regex.Pattern;
 public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private final PageService pageService;
     private final LemmaService lemmaService;
+    private final SearchIndexService searchIndexService;
 
 
     public HashMap<String, Integer> countRussianLemmas(String content) {
@@ -101,7 +104,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
 
     @Override
-    public IndexingResponse IndexPage(String url) {
+    public NegativeIndexingResponse IndexPage(String url) {
         List<Page> pages = pageService.findAllByPath(url);
         for (Page page : pages) {
             String content = page.getContent();
@@ -114,6 +117,12 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
                     lemma.setFrequency(occurrences);
                     lemmaService.save(lemma);
 
+                    SearchIndex searchIndex = new SearchIndex();
+                    searchIndex.setLemma(lemma);
+                    searchIndex.setPage(page);
+                    float rank = hm.get(key);
+                    searchIndex.setIndexRank(rank);
+                    searchIndexService.save(searchIndex);
                 } else {
                     Lemma lemma = new Lemma();
                     lemma.setLemma(key);
@@ -121,9 +130,15 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
                     lemma.setFrequency(1);
                     lemmaService.save(lemma);
 
+                    SearchIndex searchIndex = new SearchIndex();
+                    searchIndex.setLemma(lemma);
+                    searchIndex.setPage(page);
+                    float rank = hm.get(key);
+                    searchIndex.setIndexRank(rank);
+                    searchIndexService.save(searchIndex);
                 }
             }
         }
-        return new IndexingResponse();
+        return new NegativeIndexingResponse();
     }
 }

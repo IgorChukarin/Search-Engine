@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import searchengine.config.JsoupConfig;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesListConfig;
-import searchengine.dto.indexing.IndexingResponse;
+import searchengine.dto.indexing.NegativeIndexingResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.services.RepositoryServices.PageService;
@@ -32,9 +32,9 @@ public class IndexingServiceImpl implements IndexingService{
 
 
     @Override
-    public IndexingResponse startIndexing() {
+    public NegativeIndexingResponse startIndexing() {
         if (!canStartIndexing()) {
-            return new IndexingResponse(false, "Индексация уже запущена");
+            return new NegativeIndexingResponse(false, "Индексация уже запущена");
         }
         LinkFinderAction.unlockAction();
         try {
@@ -44,9 +44,9 @@ public class IndexingServiceImpl implements IndexingService{
         }
         catch (Exception e) {
             e.printStackTrace();
-            return new IndexingResponse(false, "Ошибка в indexingService");
+            return new NegativeIndexingResponse(false, "Ошибка в indexingService");
         }
-        return new IndexingResponse(true, "");
+        return new NegativeIndexingResponse(true, "");
     }
 
 
@@ -102,13 +102,13 @@ public class IndexingServiceImpl implements IndexingService{
 
 
     @Override
-    public IndexingResponse stopIndexing() {
+    public NegativeIndexingResponse stopIndexing() {
         if (!canStopIndexing()) {
-            return new IndexingResponse(false, "Индексация не запущена");
+            return new NegativeIndexingResponse(false, "Индексация не запущена");
         }
         LinkFinderAction.lockAction();
         changeUnfinishedSiteStatus();
-        return new IndexingResponse(true, "");
+        return new NegativeIndexingResponse(true, "");
     }
 
 
