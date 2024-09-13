@@ -31,6 +31,9 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public StatisticsResponse getStatistics() {
+        if (siteService.count() == 0) {
+            return getDefaultStatistics();
+        }
         StatisticsData data = new StatisticsData();
         TotalStatistics total = getTotalStatistics();
         List<DetailedStatisticsItem> detailed = getDetailedStatistics();
@@ -81,7 +84,15 @@ public class StatisticsServiceImpl implements StatisticsService {
     }
 
 
-    private void getDefaultStatistics() {
-        //maybe
+    private StatisticsResponse getDefaultStatistics() {
+        StatisticsData data = new StatisticsData();
+        TotalStatistics total = new TotalStatistics();
+        List<DetailedStatisticsItem> detailed = new ArrayList<>();
+        data.setTotal(total);
+        data.setDetailed(detailed);
+        StatisticsResponse response = new StatisticsResponse();
+        response.setStatistics(data);
+        response.setResult(true);
+        return response;
     }
 }

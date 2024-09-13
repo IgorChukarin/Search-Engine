@@ -32,4 +32,9 @@ public class SiteServiceImpl implements SiteService{
     public Site findByUrl(String url) {
         return siteRepository.findByUrl(url);
     }
+
+    @Override
+    public long count() {
+        return siteRepository.count();
+    }
 }
