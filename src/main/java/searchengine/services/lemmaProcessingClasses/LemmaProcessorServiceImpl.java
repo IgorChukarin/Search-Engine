@@ -107,41 +107,44 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
     @Override
     public IndexingResponse IndexPage(String url) {
-        System.out.println("indexing page");
         List<Page> pages = pageService.findAllByPath(url);
         for (Page page : pages) {
-            String content = page.getContent();
-            HashMap<String, Integer> hm = countRussianLemmas(content);
-            for (String key : hm.keySet()) {
-                Integer siteId = page.getSite().getId();
-                if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
-                    Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
-                    Integer occurrences = lemma.getFrequency();
-                    lemma.setFrequency(occurrences);
-                    lemmaService.save(lemma);
-
-                    SearchIndex searchIndex = new SearchIndex();
-                    searchIndex.setLemma(lemma);
-                    searchIndex.setPage(page);
-                    float rank = hm.get(key);
-                    searchIndex.setIndexRank(rank);
-                    searchIndexService.save(searchIndex);
-                } else {
-                    Lemma lemma = new Lemma();
-                    lemma.setLemma(key);
-                    lemma.setSite(page.getSite());
-                    lemma.setFrequency(1);
-                    lemmaService.save(lemma);
-
-                    SearchIndex searchIndex = new SearchIndex();
-                    searchIndex.setLemma(lemma);
-                    searchIndex.setPage(page);
-                    float rank = hm.get(key);
-                    searchIndex.setIndexRank(rank);
-                    searchIndexService.save(searchIndex);
-                }
-            }
+            processPage(page);
         }
         return new PositiveIndexingResponse();
+    }
+
+
+    private void processPage(Page page) {
+        String content = page.getContent();
+        HashMap<String, Integer> lemmaOccurrences = countRussianLemmas(content);
+        for (String key : lemmaOccurrences.keySet()) {
+            Integer siteId = page.getSite().getId();
+            if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
+                Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
+                Integer occurrences = lemma.getFrequency();
+                lemma.setFrequency(occurrences);
+                lemmaService.save(lemma);
+                float rank = lemmaOccurrences.get(key);
+                saveSearchIndex(lemma, page, rank);
+            } else {
+                Lemma lemma = new Lemma();
+                lemma.setLemma(key);
+                lemma.setSite(page.getSite());
+                lemma.setFrequency(1);
+                lemmaService.save(lemma);
+                float rank = lemmaOccurrences.get(key);
+                saveSearchIndex(lemma, page, rank);
+            }
+        }
+    }
+
+
+    private void saveSearchIndex(Lemma lemma, Page page, float rank) {
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setLemma(lemma);
+        searchIndex.setPage(page);
+        searchIndex.setIndexRank(rank);
+        searchIndexService.save(searchIndex);
     }
 }

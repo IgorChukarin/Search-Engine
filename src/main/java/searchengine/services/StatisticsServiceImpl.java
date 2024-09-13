@@ -47,10 +47,10 @@ public class StatisticsServiceImpl implements StatisticsService {
         List<SiteConfig> sitesList = sites.getSites();
         for(int i = 0; i < sitesList.size(); i++) {
             SiteConfig siteConfig = sitesList.get(i);
-            Site site = siteService.findByUrl(siteConfig.getUrl());
             DetailedStatisticsItem item = new DetailedStatisticsItem();
-            item.setName(site.getName());
-            item.setUrl(site.getUrl());
+            item.setName(siteConfig.getName());
+            item.setUrl(siteConfig.getUrl());
+            Site site = siteService.findByUrl(siteConfig.getUrl());
             int pages = (int) pageService.count();
             int lemmas = (int) lemmaService.count();
             item.setPages(pages);

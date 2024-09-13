@@ -1,9 +1,9 @@
 package searchengine.dto.indexing;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
+@Getter
+@Setter
 public class NegativeIndexingResponse extends IndexingResponse{
     private String error;
 
