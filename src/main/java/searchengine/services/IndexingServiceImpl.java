@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import searchengine.config.JsoupConfig;
 import searchengine.config.SiteConfig;
 import searchengine.config.SitesListConfig;
+import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.indexing.NegativeIndexingResponse;
+import searchengine.dto.indexing.PositiveIndexingResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.services.RepositoryServices.PageService;
@@ -32,9 +34,10 @@ public class IndexingServiceImpl implements IndexingService{
 
 
     @Override
-    public NegativeIndexingResponse startIndexing() {
+    public IndexingResponse startIndexing() {
+        System.out.println("start indexing");
         if (!canStartIndexing()) {
-            return new NegativeIndexingResponse(false, "Индексация уже запущена");
+            return new NegativeIndexingResponse("Индексация уже запущена");
         }
         LinkFinderAction.unlockAction();
         try {
@@ -44,9 +47,9 @@ public class IndexingServiceImpl implements IndexingService{
         }
         catch (Exception e) {
             e.printStackTrace();
-            return new NegativeIndexingResponse(false, "Ошибка в indexingService");
+            return new NegativeIndexingResponse("Ошибка в indexingService");
         }
-        return new NegativeIndexingResponse(true, "");
+        return new PositiveIndexingResponse();
     }
 
 
@@ -102,13 +105,13 @@ public class IndexingServiceImpl implements IndexingService{
 
 
     @Override
-    public NegativeIndexingResponse stopIndexing() {
+    public IndexingResponse stopIndexing() {
         if (!canStopIndexing()) {
-            return new NegativeIndexingResponse(false, "Индексация не запущена");
+            return new NegativeIndexingResponse("Индексация не запущена");
         }
         LinkFinderAction.lockAction();
         changeUnfinishedSiteStatus();
-        return new NegativeIndexingResponse(true, "");
+        return new PositiveIndexingResponse();
     }
 
 

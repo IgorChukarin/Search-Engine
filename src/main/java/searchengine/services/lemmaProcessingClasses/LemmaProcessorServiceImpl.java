@@ -6,7 +6,9 @@ import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
+import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.indexing.NegativeIndexingResponse;
+import searchengine.dto.indexing.PositiveIndexingResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
@@ -104,7 +106,8 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
 
     @Override
-    public NegativeIndexingResponse IndexPage(String url) {
+    public IndexingResponse IndexPage(String url) {
+        System.out.println("indexing page");
         List<Page> pages = pageService.findAllByPath(url);
         for (Page page : pages) {
             String content = page.getContent();
@@ -139,6 +142,6 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
                 }
             }
         }
-        return new NegativeIndexingResponse();
+        return new PositiveIndexingResponse();
     }
 }

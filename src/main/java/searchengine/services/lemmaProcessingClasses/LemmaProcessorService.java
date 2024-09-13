@@ -1,7 +1,8 @@
 package searchengine.services.lemmaProcessingClasses;
 
+import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.indexing.NegativeIndexingResponse;
 
 public interface LemmaProcessorService {
-    public NegativeIndexingResponse IndexPage(String url);
+    public IndexingResponse IndexPage(String url);
 }

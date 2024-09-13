@@ -2,6 +2,7 @@ package searchengine.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import searchengine.dto.indexing.IndexingResponse;
 import searchengine.dto.indexing.NegativeIndexingResponse;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
@@ -28,17 +29,17 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<NegativeIndexingResponse> startIndexing() {
+    public ResponseEntity<IndexingResponse> startIndexing() {
         return ResponseEntity.ok(indexingService.startIndexing());
     }
 
     @GetMapping("/stopIndexing")
-    public ResponseEntity<NegativeIndexingResponse> stopIndexing() {
+    public ResponseEntity<IndexingResponse> stopIndexing() {
         return ResponseEntity.ok(indexingService.stopIndexing());
     }
 
     @PostMapping("/indexPage")
-    public ResponseEntity<NegativeIndexingResponse> indexPage(@RequestParam("url") String url) {
+    public ResponseEntity<IndexingResponse> indexPage(@RequestParam("url") String url) {
         return ResponseEntity.ok(lemmaService.IndexPage(url));
     }
 }
