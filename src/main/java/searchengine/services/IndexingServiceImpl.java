@@ -35,7 +35,6 @@ public class IndexingServiceImpl implements IndexingService{
 
     @Override
     public IndexingResponse startIndexing() {
-        System.out.println("start indexing");
         if (!canStartIndexing()) {
             return new NegativeIndexingResponse("Индексация уже запущена");
         }

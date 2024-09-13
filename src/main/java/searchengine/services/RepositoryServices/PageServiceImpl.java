@@ -40,4 +40,9 @@ public class PageServiceImpl implements PageService{
     public long count() {
         return pageRepository.count();
     }
+
+    @Override
+    public Integer countPagesBySiteId(Integer id) {
+        return pageRepository.countBySiteId(id);
+    }
 }

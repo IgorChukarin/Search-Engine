@@ -30,4 +30,9 @@ public class LemmaServiceImpl implements LemmaService{
     public long count() {
         return lemmaRepository.count();
     }
+
+    @Override
+    public Integer countBySiteId(Integer siteId) {
+        return lemmaRepository.countBySiteId(siteId);
+    }
 }

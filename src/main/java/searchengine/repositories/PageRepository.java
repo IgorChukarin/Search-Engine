@@ -10,4 +10,5 @@ import java.util.List;
 public interface PageRepository extends JpaRepository<Page, Integer> {
     boolean existsByPathAndSiteId(String path, Integer siteId);
     List<Page> findAllByPath(String path);
+    Integer countBySiteId(Integer siteId);
 }

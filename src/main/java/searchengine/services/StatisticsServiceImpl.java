@@ -24,7 +24,6 @@ import java.util.Random;
 @RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
-    private final Random random = new Random();
     private final SitesListConfig sites;
     private final PageService pageService;
     private final LemmaService lemmaService;
@@ -32,46 +31,57 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     @Override
     public StatisticsResponse getStatistics() {
-        String[] statuses = { "INDEXED", "FAILED", "INDEXING" };
-        String[] errors = {
-                "Ошибка индексации: главная страница сайта не доступна",
-                "Ошибка индексации: сайт не доступен",
-                ""
-        };
+        StatisticsData data = new StatisticsData();
+        TotalStatistics total = getTotalStatistics();
+        List<DetailedStatisticsItem> detailed = getDetailedStatistics();
+        data.setTotal(total);
+        data.setDetailed(detailed);
+        StatisticsResponse response = new StatisticsResponse();
+        response.setStatistics(data);
+        response.setResult(true);
+        return response;
+    }
 
+
+    private TotalStatistics getTotalStatistics() {
         TotalStatistics total = new TotalStatistics();
-        total.setSites(sites.getSites().size());
+        int totalPages = (int) pageService.count();
+        int totalLemmas = (int) lemmaService.count();
+        int totalSites = sites.getSites().size();
+        total.setPages(totalPages);
+        total.setLemmas(totalLemmas);
+        total.setSites(totalSites);
         total.setIndexing(true);
+        return total;
+    }
 
+
+    private List<DetailedStatisticsItem> getDetailedStatistics() {
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
         List<SiteConfig> sitesList = sites.getSites();
         for(int i = 0; i < sitesList.size(); i++) {
             SiteConfig siteConfig = sitesList.get(i);
             DetailedStatisticsItem item = new DetailedStatisticsItem();
-            item.setName(siteConfig.getName());
-            item.setUrl(siteConfig.getUrl());
             Site site = siteService.findByUrl(siteConfig.getUrl());
-            int pages = (int) pageService.count();
-            int lemmas = (int) lemmaService.count();
+            int siteId = site.getId();
+            int pages = pageService.countPagesBySiteId(siteId);
+            int lemmas = lemmaService.countBySiteId(siteId);
             item.setPages(pages);
             item.setLemmas(lemmas);
+            item.setName(siteConfig.getName());
+            item.setUrl(siteConfig.getUrl());
             item.setStatus(site.getStatus().toString());
             item.setError(site.getLastError());
-
             Instant instant = site.getStatusTime().atZone(ZoneId.of("Europe/Moscow")).toInstant();
             long millis = instant.toEpochMilli();
             item.setStatusTime(millis);
-            total.setPages(pages);
-            total.setLemmas(lemmas);
             detailed.add(item);
         }
+        return detailed;
+    }
 
-        StatisticsResponse response = new StatisticsResponse();
-        StatisticsData data = new StatisticsData();
-        data.setTotal(total);
-        data.setDetailed(detailed);
-        response.setStatistics(data);
-        response.setResult(true);
-        return response;
+
+    private void getDefaultStatistics() {
+        //maybe
     }
 }

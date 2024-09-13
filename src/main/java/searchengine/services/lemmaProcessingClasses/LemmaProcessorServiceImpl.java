@@ -108,6 +108,9 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     @Override
     public IndexingResponse IndexPage(String url) {
         List<Page> pages = pageService.findAllByPath(url);
+        if (pages.isEmpty()) {
+            return new NegativeIndexingResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
+        }
         for (Page page : pages) {
             processPage(page);
         }
