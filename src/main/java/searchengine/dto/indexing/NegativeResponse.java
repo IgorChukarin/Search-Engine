@@ -4,10 +4,10 @@ import lombok.*;
 
 @Getter
 @Setter
-public class NegativeIndexingResponse extends IndexingResponse{
+public class NegativeResponse extends Response {
     private String error;
 
-    public NegativeIndexingResponse(String error) {
+    public NegativeResponse(String error) {
         super(false);
         this.error = error;
     }

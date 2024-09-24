@@ -6,9 +6,9 @@ import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
-import searchengine.dto.indexing.IndexingResponse;
-import searchengine.dto.indexing.NegativeIndexingResponse;
-import searchengine.dto.indexing.PositiveIndexingResponse;
+import searchengine.dto.indexing.Response;
+import searchengine.dto.indexing.NegativeResponse;
+import searchengine.dto.indexing.PositiveResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
@@ -26,9 +26,48 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 public class LemmaProcessorServiceImpl implements LemmaProcessorService {
+
     private final PageService pageService;
     private final LemmaService lemmaService;
     private final SearchIndexService searchIndexService;
+
+
+    @Override
+    public Response IndexPage(String url) {
+        List<Page> pages = pageService.findAllByPath(url);
+        if (pages.isEmpty()) {
+            return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
+        }
+        for (Page page : pages) {
+            processPage(page);
+        }
+        return new PositiveResponse();
+    }
+
+
+    private void processPage(Page page) {
+        String content = page.getContent();
+        HashMap<String, Integer> lemmaOccurrences = countRussianLemmas(content);
+        for (String key : lemmaOccurrences.keySet()) {
+            Integer siteId = page.getSite().getId();
+            if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
+                Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
+                Integer occurrences = lemma.getFrequency();
+                lemma.setFrequency(occurrences);
+                lemmaService.save(lemma);
+                float rank = lemmaOccurrences.get(key);
+                saveSearchIndex(lemma, page, rank);
+            } else {
+                Lemma lemma = new Lemma();
+                lemma.setLemma(key);
+                lemma.setSite(page.getSite());
+                lemma.setFrequency(1);
+                lemmaService.save(lemma);
+                float rank = lemmaOccurrences.get(key);
+                saveSearchIndex(lemma, page, rank);
+            }
+        }
+    }
 
 
     public HashMap<String, Integer> countRussianLemmas(String content) {
@@ -48,6 +87,15 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
             }
         }
         return lemmasOccurrences;
+    }
+
+
+    private void saveSearchIndex(Lemma lemma, Page page, float rank) {
+        SearchIndex searchIndex = new SearchIndex();
+        searchIndex.setLemma(lemma);
+        searchIndex.setPage(page);
+        searchIndex.setIndexRank(rank);
+        searchIndexService.save(searchIndex);
     }
 
 
@@ -102,52 +150,5 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
             e.printStackTrace();
             return null;
         }
-    }
-
-
-    @Override
-    public IndexingResponse IndexPage(String url) {
-        List<Page> pages = pageService.findAllByPath(url);
-        if (pages.isEmpty()) {
-            return new NegativeIndexingResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
-        }
-        for (Page page : pages) {
-            processPage(page);
-        }
-        return new PositiveIndexingResponse();
-    }
-
-
-    private void processPage(Page page) {
-        String content = page.getContent();
-        HashMap<String, Integer> lemmaOccurrences = countRussianLemmas(content);
-        for (String key : lemmaOccurrences.keySet()) {
-            Integer siteId = page.getSite().getId();
-            if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
-                Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
-                Integer occurrences = lemma.getFrequency();
-                lemma.setFrequency(occurrences);
-                lemmaService.save(lemma);
-                float rank = lemmaOccurrences.get(key);
-                saveSearchIndex(lemma, page, rank);
-            } else {
-                Lemma lemma = new Lemma();
-                lemma.setLemma(key);
-                lemma.setSite(page.getSite());
-                lemma.setFrequency(1);
-                lemmaService.save(lemma);
-                float rank = lemmaOccurrences.get(key);
-                saveSearchIndex(lemma, page, rank);
-            }
-        }
-    }
-
-
-    private void saveSearchIndex(Lemma lemma, Page page, float rank) {
-        SearchIndex searchIndex = new SearchIndex();
-        searchIndex.setLemma(lemma);
-        searchIndex.setPage(page);
-        searchIndex.setIndexRank(rank);
-        searchIndexService.save(searchIndex);
     }
 }

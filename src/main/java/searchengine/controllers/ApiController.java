@@ -2,10 +2,10 @@ package searchengine.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import searchengine.dto.indexing.IndexingResponse;
-import searchengine.dto.indexing.NegativeIndexingResponse;
+import searchengine.dto.indexing.Response;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
+import searchengine.services.Search.SearchService;
 import searchengine.services.StatisticsService;
 import searchengine.services.lemmaProcessingClasses.LemmaProcessorService;
 
@@ -16,11 +16,13 @@ public class ApiController {
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
     private final LemmaProcessorService lemmaService;
+    private final SearchService searchService;
 
-    public ApiController(StatisticsService statisticsService, IndexingService indexingService, LemmaProcessorService lemmaService) {
+    public ApiController(StatisticsService statisticsService, IndexingService indexingService, LemmaProcessorService lemmaService, SearchService searchService) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
         this.lemmaService = lemmaService;
+        this.searchService = searchService;
     }
 
     @GetMapping("/statistics")
@@ -29,17 +31,27 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<IndexingResponse> startIndexing() {
+    public ResponseEntity<Response> startIndexing() {
         return ResponseEntity.ok(indexingService.startIndexing());
     }
 
     @GetMapping("/stopIndexing")
-    public ResponseEntity<IndexingResponse> stopIndexing() {
+    public ResponseEntity<Response> stopIndexing() {
         return ResponseEntity.ok(indexingService.stopIndexing());
     }
 
     @PostMapping("/indexPage")
-    public ResponseEntity<IndexingResponse> indexPage(@RequestParam("url") String url) {
+    public ResponseEntity<Response> indexPage(@RequestParam("url") String url) {
         return ResponseEntity.ok(lemmaService.IndexPage(url));
+    }
+
+    @PostMapping("/search")
+    public ResponseEntity<Response> search(
+            @RequestParam(value = "query", required = true) String query,
+            @RequestParam(value = "site", required = false) String site,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "20") int limit)
+    {
+        return ResponseEntity.ok(searchService.search(query, site, offset, limit));
     }
 }

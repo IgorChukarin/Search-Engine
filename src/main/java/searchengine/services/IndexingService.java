@@ -1,9 +1,8 @@
 package searchengine.services;
 
-import searchengine.dto.indexing.IndexingResponse;
-import searchengine.dto.indexing.NegativeIndexingResponse;
+import searchengine.dto.indexing.Response;
 
 public interface IndexingService {
-    IndexingResponse startIndexing();
-    IndexingResponse stopIndexing();
+    Response startIndexing();
+    Response stopIndexing();
 }
