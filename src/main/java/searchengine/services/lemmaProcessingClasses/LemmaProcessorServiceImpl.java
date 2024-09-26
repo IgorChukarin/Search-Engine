@@ -39,7 +39,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
             return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
         for (Page page : pages) {
-            processPage(page);
+            new Thread(() -> processPage(page)).start();
         }
         return new PositiveResponse();
     }
@@ -70,7 +70,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    public HashMap<String, Integer> countRussianLemmas(String content) {
+    private HashMap<String, Integer> countRussianLemmas(String content) {
         Document document = Jsoup.parse(content);
         String text = document.text().toLowerCase();
         List<String> russianWordsWithServiceWords = extractRussianWords(text);
@@ -99,7 +99,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    private List<String> extractRussianWords(String text) {
+    public List<String> extractRussianWords(String text) {
         Pattern russianWordPattern = Pattern.compile("[а-яА-ЯёЁ]+");
         Matcher matcher = russianWordPattern.matcher(text);
         List<String> russianWords = new ArrayList<>();
@@ -142,10 +142,10 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    private List<String> findBaseForms(String word) {
+    public List<String> findBaseForms(String word) {
         try {
             LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
-            return luceneMorphology.getNormalForms(word);
+            return luceneMorphology.getNormalForms(word.toLowerCase());
         } catch (IOException e) {
             e.printStackTrace();
             return null;

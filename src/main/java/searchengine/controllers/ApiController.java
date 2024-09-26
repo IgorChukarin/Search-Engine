@@ -6,7 +6,7 @@ import searchengine.dto.indexing.Response;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
 import searchengine.services.Search.SearchService;
-import searchengine.services.StatisticsService;
+import searchengine.services.statistics.StatisticsService;
 import searchengine.services.lemmaProcessingClasses.LemmaProcessorService;
 
 @RestController
@@ -45,7 +45,7 @@ public class ApiController {
         return ResponseEntity.ok(lemmaService.IndexPage(url));
     }
 
-    @PostMapping("/search")
+    @GetMapping("/search")
     public ResponseEntity<Response> search(
             @RequestParam(value = "query", required = true) String query,
             @RequestParam(value = "site", required = false) String site,
