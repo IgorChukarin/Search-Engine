@@ -53,7 +53,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
             if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
                 Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
                 Integer occurrences = lemma.getFrequency();
-                lemma.setFrequency(occurrences);
+                lemma.setFrequency(occurrences + 1);
                 lemmaService.save(lemma);
                 float rank = lemmaOccurrences.get(key);
                 saveSearchIndex(lemma, page, rank);

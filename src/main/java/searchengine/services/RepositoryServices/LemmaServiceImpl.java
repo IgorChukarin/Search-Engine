@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import searchengine.model.Lemma;
 import searchengine.repositories.LemmaRepository;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class LemmaServiceImpl implements LemmaService{
@@ -34,5 +36,10 @@ public class LemmaServiceImpl implements LemmaService{
     @Override
     public Integer countBySiteId(Integer siteId) {
         return lemmaRepository.countBySiteId(siteId);
+    }
+
+    @Override
+    public List<Lemma> findAllByLemma(String lemma) {
+        return lemmaRepository.findAllByLemma(lemma);
     }
 }

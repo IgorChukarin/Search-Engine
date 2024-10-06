@@ -134,4 +134,9 @@ public class IndexingServiceImpl implements IndexingService{
             siteService.save(site);
         }
     }
+
+    @Override
+    public boolean isIndexing() {
+        return isIndexing;
+    }
 }

@@ -16,4 +16,6 @@ public interface PageService {
     long count();
 
     Integer countPagesBySiteId(Integer id);
+
+
 }

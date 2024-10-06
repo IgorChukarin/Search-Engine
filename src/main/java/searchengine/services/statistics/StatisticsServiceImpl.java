@@ -9,6 +9,8 @@ import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
 import searchengine.model.Site;
+import searchengine.services.IndexingService;
+import searchengine.services.IndexingServiceImpl;
 import searchengine.services.RepositoryServices.LemmaService;
 import searchengine.services.RepositoryServices.PageService;
 import searchengine.services.RepositoryServices.SiteService;
@@ -26,6 +28,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final PageService pageService;
     private final LemmaService lemmaService;
     private final SiteService siteService;
+    private final IndexingService indexingService;
 
     @Override
     public StatisticsResponse getStatistics() {
@@ -52,7 +55,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         total.setPages(totalPages);
         total.setLemmas(totalLemmas);
         total.setSites(totalSites);
-        total.setIndexing(true);
+        total.setIndexing(indexingService.isIndexing());
         return total;
     }
 

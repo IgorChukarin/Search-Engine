@@ -5,4 +5,5 @@ import searchengine.dto.indexing.Response;
 public interface IndexingService {
     Response startIndexing();
     Response stopIndexing();
+    boolean isIndexing();
 }

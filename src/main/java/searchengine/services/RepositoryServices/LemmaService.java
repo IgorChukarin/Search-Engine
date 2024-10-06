@@ -2,6 +2,8 @@ package searchengine.services.RepositoryServices;
 
 import searchengine.model.Lemma;
 
+import java.util.List;
+
 public interface LemmaService {
     boolean existsByLemmaAndSiteId(String lemma, Integer siteId);
 
@@ -12,4 +14,6 @@ public interface LemmaService {
     long count();
 
     Integer countBySiteId(Integer siteId);
+
+    List<Lemma> findAllByLemma(String lemma);
 }
