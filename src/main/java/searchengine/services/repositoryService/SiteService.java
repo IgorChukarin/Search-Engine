@@ -1,9 +1,6 @@
-package searchengine.services.RepositoryServices;
+package searchengine.services.repositoryService;
 
 import searchengine.model.Site;
-import searchengine.model.SiteStatus;
-
-import java.time.LocalDateTime;
 
 public interface SiteService {
     void save(Site site);

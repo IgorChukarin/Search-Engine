@@ -1,4 +1,4 @@
-package searchengine.services.lemmaProcessingClasses;
+package searchengine.services.lemmaProcessing;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.lucene.morphology.LuceneMorphology;
@@ -12,9 +12,9 @@ import searchengine.dto.indexing.PositiveResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
-import searchengine.services.RepositoryServices.LemmaService;
-import searchengine.services.RepositoryServices.PageService;
-import searchengine.services.RepositoryServices.SearchIndexService;
+import searchengine.services.repositoryService.LemmaService;
+import searchengine.services.repositoryService.PageService;
+import searchengine.services.repositoryService.SearchIndexService;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -24,13 +24,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-@RequiredArgsConstructor
 public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
     private final PageService pageService;
     private final LemmaService lemmaService;
     private final SearchIndexService searchIndexService;
+    private final RussianLuceneMorphology russianLuceneMorphology;
 
+    public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService) {
+        this.pageService = pageService;
+        this.lemmaService = lemmaService;
+        this.searchIndexService = searchIndexService;
+        try {
+            this.russianLuceneMorphology = new RussianLuceneMorphology();
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось инициализировать RussianLuceneMorphology", e);
+        }
+    }
 
     @Override
     public Response IndexPage(String url) {
@@ -46,27 +56,29 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
 
     private void processPage(Page page) {
+        System.out.println("Start");
         String content = page.getContent();
         HashMap<String, Integer> lemmaOccurrences = countRussianLemmas(content);
-        for (String key : lemmaOccurrences.keySet()) {
+        for (String extractedLemma : lemmaOccurrences.keySet()) {
             Integer siteId = page.getSite().getId();
-            if (lemmaService.existsByLemmaAndSiteId(key, siteId)) {
-                Lemma lemma = lemmaService.findByLemmaAndSiteId(key, siteId);
+            if (lemmaService.existsByLemmaAndSiteId(extractedLemma, siteId)) {
+                Lemma lemma = lemmaService.findByLemmaAndSiteId(extractedLemma, siteId);
                 Integer occurrences = lemma.getFrequency();
-                lemma.setFrequency(occurrences + 1);
+                lemma.setFrequency(occurrences + lemmaOccurrences.get(extractedLemma));
                 lemmaService.save(lemma);
-                float rank = lemmaOccurrences.get(key);
+                float rank = lemmaOccurrences.get(extractedLemma);
                 saveSearchIndex(lemma, page, rank);
             } else {
                 Lemma lemma = new Lemma();
-                lemma.setLemma(key);
+                lemma.setLemma(extractedLemma);
                 lemma.setSite(page.getSite());
-                lemma.setFrequency(1);
+                lemma.setFrequency(lemmaOccurrences.get(extractedLemma));
                 lemmaService.save(lemma);
-                float rank = lemmaOccurrences.get(key);
+                float rank = lemmaOccurrences.get(extractedLemma);
                 saveSearchIndex(lemma, page, rank);
             }
         }
+        System.out.println("end");
     }
 
 
@@ -122,33 +134,21 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
 
     public boolean isServiceWord(String word) {
-        try {
-            LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
-            List<String> wordBaseFormsInfo = luceneMorphology.getMorphInfo(word);
-            for (String info : wordBaseFormsInfo) {
-                if (info.contains("СОЮЗ") ||
-                        info.contains("ЧАСТ") ||
-                        info.contains("МЕЖД") ||
-                        info.contains("ПРЕДЛ") ||
-                        info.contains("МС")) {
-                    return true;
-                }
+        List<String> wordBaseFormsInfo = russianLuceneMorphology.getMorphInfo(word);
+        for (String info : wordBaseFormsInfo) {
+            if (info.contains("СОЮЗ") ||
+                    info.contains("ЧАСТ") ||
+                    info.contains("МЕЖД") ||
+                    info.contains("ПРЕДЛ") ||
+                    info.contains("МС")) {
+                return true;
             }
-            return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
         }
+        return false;
     }
 
 
     public List<String> findBaseForms(String word) {
-        try {
-            LuceneMorphology luceneMorphology = new RussianLuceneMorphology();
-            return luceneMorphology.getNormalForms(word.toLowerCase());
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
+        return russianLuceneMorphology.getNormalForms(word.toLowerCase());
     }
 }

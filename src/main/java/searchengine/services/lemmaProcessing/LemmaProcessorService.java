@@ -1,4 +1,4 @@
-package searchengine.services.lemmaProcessingClasses;
+package searchengine.services.lemmaProcessing;
 
 import searchengine.dto.indexing.Response;
 

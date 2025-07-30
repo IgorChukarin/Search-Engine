@@ -1,4 +1,4 @@
-package searchengine.services.RepositoryServices;
+package searchengine.services.repositoryService;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;

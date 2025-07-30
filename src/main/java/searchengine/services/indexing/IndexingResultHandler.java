@@ -1,4 +1,4 @@
-package searchengine.services;
+package searchengine.services.indexing;
 
 import java.util.List;
 import java.util.concurrent.RunnableFuture;

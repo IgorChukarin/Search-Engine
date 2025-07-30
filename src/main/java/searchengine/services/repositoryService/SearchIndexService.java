@@ -1,4 +1,4 @@
-package searchengine.services.RepositoryServices;
+package searchengine.services.repositoryService;
 
 import searchengine.model.SearchIndex;
 

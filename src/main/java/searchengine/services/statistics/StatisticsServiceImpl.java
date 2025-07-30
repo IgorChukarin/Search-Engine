@@ -9,11 +9,10 @@ import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
 import searchengine.model.Site;
-import searchengine.services.IndexingService;
-import searchengine.services.IndexingServiceImpl;
-import searchengine.services.RepositoryServices.LemmaService;
-import searchengine.services.RepositoryServices.PageService;
-import searchengine.services.RepositoryServices.SiteService;
+import searchengine.services.indexing.IndexingService;
+import searchengine.services.repositoryService.LemmaService;
+import searchengine.services.repositoryService.PageService;
+import searchengine.services.repositoryService.SiteService;
 
 import java.time.Instant;
 import java.time.ZoneId;

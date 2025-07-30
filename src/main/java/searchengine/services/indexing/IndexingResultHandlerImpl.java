@@ -1,11 +1,10 @@
-package searchengine.services;
+package searchengine.services.indexing;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.repositories.SiteRepository;
-import searchengine.services.IndexingResultHandler;
 
 import java.util.Iterator;
 import java.util.List;

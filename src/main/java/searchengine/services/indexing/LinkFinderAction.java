@@ -1,4 +1,4 @@
-package searchengine.services.linkFinderClasses;
+package searchengine.services.indexing;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -12,8 +12,8 @@ import org.jsoup.select.Elements;
 import searchengine.config.JsoupConfig;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
-import searchengine.services.RepositoryServices.PageService;
-import searchengine.services.RepositoryServices.SiteService;
+import searchengine.services.repositoryService.PageService;
+import searchengine.services.repositoryService.SiteService;
 
 import java.io.IOException;
 import java.time.LocalDateTime;

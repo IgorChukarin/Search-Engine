@@ -5,10 +5,10 @@ import org.springframework.web.bind.annotation.*;
 import searchengine.dto.indexing.Response;
 import searchengine.dto.indexing.SearchResponse;
 import searchengine.dto.statistics.StatisticsResponse;
-import searchengine.services.IndexingService;
-import searchengine.services.Search.SearchService;
+import searchengine.services.indexing.IndexingService;
+import searchengine.services.searching.SearchService;
 import searchengine.services.statistics.StatisticsService;
-import searchengine.services.lemmaProcessingClasses.LemmaProcessorService;
+import searchengine.services.lemmaProcessing.LemmaProcessorService;
 
 @RestController
 @RequestMapping("/api")
@@ -16,13 +16,13 @@ public class ApiController {
 
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
-    private final LemmaProcessorService lemmaService;
+    private final LemmaProcessorService lemmaProcessorService;
     private final SearchService searchService;
 
     public ApiController(StatisticsService statisticsService, IndexingService indexingService, LemmaProcessorService lemmaService, SearchService searchService) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
-        this.lemmaService = lemmaService;
+        this.lemmaProcessorService = lemmaService;
         this.searchService = searchService;
     }
 
@@ -43,7 +43,7 @@ public class ApiController {
 
     @PostMapping("/indexPage")
     public ResponseEntity<Response> indexPage(@RequestParam("url") String url) {
-        return ResponseEntity.ok(lemmaService.IndexPage(url));
+        return ResponseEntity.ok(lemmaProcessorService.IndexPage(url));
     }
 
     @GetMapping("/search")
