@@ -5,7 +5,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.Site;
-import searchengine.repositories.SiteRepository;
+import searchengine.repository.SiteRepository;
 
 @Service
 @RequiredArgsConstructor

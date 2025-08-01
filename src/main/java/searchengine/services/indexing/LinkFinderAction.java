@@ -26,7 +26,8 @@ import java.util.concurrent.RecursiveAction;
 @Getter
 @Setter
 public class LinkFinderAction extends RecursiveAction {
-    private static volatile boolean stopAction;
+
+    private static volatile boolean isLocked;
 
     private Site site;
     private String root;
@@ -38,55 +39,31 @@ public class LinkFinderAction extends RecursiveAction {
 
     private final String pathRegex = "^/[^#]+$";
     private final String imageRegex = "^.*\\.(jpe?g|png|gif|bmp)$";
+    private final int indexingDelay = 1000;
     
 
     @Override
     protected void compute() {
-        if (stopAction) {
+        if (isLocked) {
             return;
         }
-        List<String> nestedLinks = findNestedLinks(currentLink);
-        List<LinkFinderAction> actionList = new ArrayList<>();
-        for (String nestedLink : nestedLinks) {
-            if (stopAction) {
-                break;
-            }
-            LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
-            action.fork();
-            actionList.add(action);
-        }
-        for (LinkFinderAction action : actionList) {
-            action.join();
-        }
-    }
-
-
-    public List<String> findNestedLinks(String currentLink) {
-        if (stopAction) {
-            return new ArrayList<>();
-        }
         try {
-            Thread.sleep(1000);
+            Thread.sleep(indexingDelay);
             Connection.Response response = connectByUrl(currentLink);
             Document document = response.parse();
-
-            String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
-            Integer code = response.statusCode();
-            String content = document.toString();
-
-            synchronized (pageService) {
-                if (stopAction) {
-                    return new ArrayList<>();
-                }
-                pageService.saveIfNotExist(path, code, content, site);
+            saveCurrentLinkIfNotExists(response, document);
+            List<String> nestedLinks = findNestedLinks(document);
+            List<LinkFinderAction> actionList = new ArrayList<>();
+            for (String nestedLink : nestedLinks) {
+                LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
+                actionList.add(action);
+                action.fork();
             }
-
-            Elements elements = document.select("a[href]");
-            List<String> nestedLinks = extractLinks(elements);
+            for (LinkFinderAction action : actionList) {
+                action.join();
+            }
             updateSiteStatusTime();
-            return nestedLinks;
-        }
-        catch (IOException | InterruptedException e) {
+        } catch (IOException | InterruptedException e) {
             String exception = e.getClass().toString();
             System.out.println(exception);
             if (exception.contains("UnknownHostException")) {
@@ -94,10 +71,10 @@ public class LinkFinderAction extends RecursiveAction {
             }
             site.setStatus(SiteStatus.FAILED);
             siteService.save(site);
-            throw new RuntimeException(e);
+        } finally {
+            updateSiteStatusTime();
         }
     }
-
 
     private Connection.Response connectByUrl(String url) throws IOException {
         return Jsoup.connect(url)
@@ -106,19 +83,28 @@ public class LinkFinderAction extends RecursiveAction {
                 .execute();
     }
 
+    private void saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
+        String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
+        Integer code = response.statusCode();
+        String content = document.toString();
+        synchronized (pageService) {
+            pageService.saveIfNotExist(path, code, content, site);
+        }
+    }
 
-    private ArrayList<String> extractLinks(Elements elements) {
-        ArrayList<String> extractedLinks = new ArrayList<>();
+    public List<String> findNestedLinks(Document document) {
+        Elements elements = document.select("a[href]");
+        List<String> nestedLinks = new ArrayList<>();
         for (Element element : elements) {
             String link = element.attr("href");
             if (link.matches(imageRegex) || !link.matches(pathRegex)) {
                 continue;
             }
             if (!pageService.existsByPathAndSiteId(link, site.getId())) {
-                extractedLinks.add(root.concat(link));
+                nestedLinks.add(root.concat(link));
             }
         }
-        return extractedLinks;
+        return nestedLinks;
     }
 
     private void updateSiteStatusTime() {
@@ -127,10 +113,10 @@ public class LinkFinderAction extends RecursiveAction {
     }
 
     public static void lockAction() {
-        stopAction = true;
+        isLocked = true;
     }
 
     public static void unlockAction() {
-        stopAction = false;
+        isLocked = false;
     }
 }

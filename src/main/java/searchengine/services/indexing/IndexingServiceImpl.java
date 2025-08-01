@@ -39,6 +39,7 @@ public class IndexingServiceImpl implements IndexingService {
         isIndexing = true;
         LinkFinderAction.unlockAction();
         try {
+            deleteSitesData();
             List<LinkFinderAction> linkFinderActions = prepareSitesForIndexing();
             List<RunnableFuture<String>> runnableFutureTasks = createTasks(linkFinderActions);
             submitTasks(runnableFutureTasks);
@@ -50,11 +51,17 @@ public class IndexingServiceImpl implements IndexingService {
         return new PositiveResponse();
     }
 
+    private void deleteSitesData() {
+        for (SiteConfig siteConfig : sitesList.getSites()) {
+            String url = siteConfig.getUrl();
+            siteService.deleteByUrl(url);
+        }
+    }
+
     private List<LinkFinderAction> prepareSitesForIndexing() {
         List<LinkFinderAction> actions = new ArrayList<>();
         for (SiteConfig siteConfig : sitesList.getSites()) {
             String url = siteConfig.getUrl();
-            siteService.deleteByUrl(url);
             Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
             siteService.save(site);
             LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, siteService, pageService, jsoupConfig);

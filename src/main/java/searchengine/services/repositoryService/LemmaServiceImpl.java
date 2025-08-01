@@ -3,7 +3,7 @@ package searchengine.services.repositoryService;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import searchengine.model.Lemma;
-import searchengine.repositories.LemmaRepository;
+import searchengine.repository.LemmaRepository;
 
 import java.util.List;
 

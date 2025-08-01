@@ -6,7 +6,7 @@ import searchengine.dto.indexing.SearchResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
-import searchengine.repositories.SearchIndexRepository;
+import searchengine.repository.SearchIndexRepository;
 import searchengine.services.repositoryService.LemmaService;
 import searchengine.services.lemmaProcessing.LemmaProcessorService;
 

@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
-import searchengine.repositories.SiteRepository;
+import searchengine.repository.SiteRepository;
 
 import java.util.Iterator;
 import java.util.List;
