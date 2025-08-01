@@ -41,7 +41,7 @@ public class SearchServiceImpl implements SearchService{
         float maxRelevance = relevanceData.getMaxRelevance();
         Map<Page, Float> normalizedRelevance = normalizeRelevance(pageRelevance, maxRelevance);
         List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(normalizedRelevance);
-        List<SearchData> searchDataList = createSearchData(sortedPages);
+        List<SearchData> searchDataList = createSearchData(sortedPages, query, lemmas);
         return new SearchResponse(searchDataList.size(), searchDataList);
     }
 
@@ -117,7 +117,7 @@ public class SearchServiceImpl implements SearchService{
         return sortedPages;
     }
 
-    private List<SearchData> createSearchData(List<Map.Entry<Page, Float>> sortedPages) {
+    private List<SearchData> createSearchData(List<Map.Entry<Page, Float>> sortedPages, String query, List<String> lemmas) {
         List<SearchData> searchDataList = new ArrayList<>();
         for (Map.Entry<Page, Float> entry : sortedPages) {
             Page page = entry.getKey();
@@ -130,10 +130,15 @@ public class SearchServiceImpl implements SearchService{
 
 
             String title = pageParser.getTitle(page.getContent());
-
-
             searchData.setTitle(title != null ? title : "Title не найден");
-            searchData.setSnippet("SNIPPET");
+
+
+            List<String> pageWords = lemmaProcessorService.extractRussianWords(page.getContent());
+            List<String> pageLemmas = translateWordsIntoLemmas(pageWords);
+
+            String snippet = pageParser.getSnippet(query, pageWords);
+            searchData.setSnippet(snippet != null ? snippet : "Snippet не найден");
+
             searchDataList.add(searchData);
         }
         return searchDataList;
