@@ -10,6 +10,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import searchengine.config.JsoupConfig;
+import searchengine.model.Page;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
 import searchengine.services.repositoryService.PageService;
@@ -39,7 +40,8 @@ public class LinkFinderAction extends RecursiveAction {
     private final String pathRegex = "^/[^#]+$";
     private final String imageRegex = "^.*\\.(jpe?g|png|gif|bmp)$";
     private final int indexingDelay = 1000;
-    
+
+    private static final List<Page> PageBuffer = new ArrayList<>();
 
     @Override
     protected void compute() {
@@ -87,8 +89,13 @@ public class LinkFinderAction extends RecursiveAction {
         String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
         Integer code = response.statusCode();
         String content = document.toString();
+        Page page = new Page();
+        page.setPath(path);
+        page.setCode(code);
+        page.setContent(content);
+        page.setSite(site);
         synchronized (pageService) {
-            pageService.saveIfNotExist(path, code, content, site);
+            pageService.saveIfNotExist(page);
         }
     }
 

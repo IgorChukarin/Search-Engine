@@ -18,9 +18,10 @@ public class PageServiceImpl implements PageService{
     @Override
     @Async
     @Transactional
-    public void saveIfNotExist(String path, Integer code, String content, Site site) {
-        if (!pageRepository.existsByPathAndSiteId(path, site.getId())) {
-            Page page = new Page(site, path, code, content);
+    public void saveIfNotExist(Page page) {
+        String path = page.getPath();
+        Integer siteId = page.getSite().getId();
+        if (!pageRepository.existsByPathAndSiteId(path, siteId)) {
             pageRepository.save(page);
         }
     }
