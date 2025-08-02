@@ -42,4 +42,11 @@ public class LemmaServiceImpl implements LemmaService{
     public List<Lemma> findAllByLemma(String lemma) {
         return lemmaRepository.findAllByLemma(lemma);
     }
+
+    @Override
+    public void saveAll(List<Lemma> lemmas) {
+        lemmaRepository.saveAll(lemmas);
+    }
+
+
 }

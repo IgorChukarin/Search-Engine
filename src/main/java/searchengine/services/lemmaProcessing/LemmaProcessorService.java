@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface LemmaProcessorService {
     Response IndexPage(String url);
-    List<String> extractRussianWords(String text);
+    List<String> getRussianWords(String text);
     List<String> findBaseForms(String word);
 }

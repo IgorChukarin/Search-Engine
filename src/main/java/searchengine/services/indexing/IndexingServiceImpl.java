@@ -64,7 +64,7 @@ public class IndexingServiceImpl implements IndexingService {
             String url = siteConfig.getUrl();
             Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
             siteService.save(site);
-            LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, url, siteService, pageService, jsoupConfig);
+            LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, siteService, pageService, jsoupConfig);
             actions.add(linkFinderAction);
         }
         return actions;

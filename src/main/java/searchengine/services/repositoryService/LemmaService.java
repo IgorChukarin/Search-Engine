@@ -16,4 +16,6 @@ public interface LemmaService {
     Integer countBySiteId(Integer siteId);
 
     List<Lemma> findAllByLemma(String lemma);
+
+    void saveAll(List<Lemma> lemmas);
 }

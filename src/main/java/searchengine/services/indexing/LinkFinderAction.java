@@ -30,7 +30,6 @@ public class LinkFinderAction extends RecursiveAction {
     private static volatile boolean isLocked;
 
     private Site site;
-    private String root;
     private String currentLink;
 
     private final SiteService siteService;
@@ -55,7 +54,7 @@ public class LinkFinderAction extends RecursiveAction {
             List<String> nestedLinks = findNestedLinks(document);
             List<LinkFinderAction> actionList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
-                LinkFinderAction action = new LinkFinderAction(site, root, nestedLink, siteService, pageService, jsoupConfig);
+                LinkFinderAction action = new LinkFinderAction(site, nestedLink, siteService, pageService, jsoupConfig);
                 actionList.add(action);
                 action.fork();
             }
@@ -65,7 +64,7 @@ public class LinkFinderAction extends RecursiveAction {
             updateSiteStatusTime();
         } catch (IOException | InterruptedException e) {
             String exception = e.getClass().toString();
-            System.out.println(exception);
+            System.out.println("LinkFinderActionException: " + exception);
             if (exception.contains("UnknownHostException")) {
                 site.setLastError("Не удалось подключиться к сайту");
             }
@@ -84,6 +83,7 @@ public class LinkFinderAction extends RecursiveAction {
     }
 
     private void saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
+        String root = site.getUrl();
         String path = currentLink.equals(root) ? "/" : currentLink.substring(root.length());
         Integer code = response.statusCode();
         String content = document.toString();
@@ -95,9 +95,10 @@ public class LinkFinderAction extends RecursiveAction {
     public List<String> findNestedLinks(Document document) {
         Elements elements = document.select("a[href]");
         List<String> nestedLinks = new ArrayList<>();
+        String root = site.getUrl();
         for (Element element : elements) {
             String link = element.attr("href");
-            if (link.matches(imageRegex) || !link.matches(pathRegex)) {
+            if (shouldFilterLink(link)) {
                 continue;
             }
             if (!pageService.existsByPathAndSiteId(link, site.getId())) {
@@ -105,6 +106,10 @@ public class LinkFinderAction extends RecursiveAction {
             }
         }
         return nestedLinks;
+    }
+
+    private boolean shouldFilterLink(String link) {
+        return link.matches(imageRegex) || !link.matches(pathRegex) || link.endsWith(".pdf");
     }
 
     private void updateSiteStatusTime() {

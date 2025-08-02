@@ -30,7 +30,7 @@ public class SearchServiceImpl implements SearchService{
 
     @Override
     public SearchResponse search(String query, String site, int offset, int limit) {
-        List<String> words = lemmaProcessorService.extractRussianWords(query);
+        List<String> words = lemmaProcessorService.getRussianWords(query);
         List<String> lemmas = translateWordsIntoLemmas(words);
         List<Lemma> matchedLemmas = matchLemmas(lemmas);
         if (matchedLemmas.isEmpty() || lemmas.size() != matchedLemmas.size()) return null;
@@ -133,7 +133,7 @@ public class SearchServiceImpl implements SearchService{
             searchData.setTitle(title != null ? title : "Title не найден");
 
 
-            List<String> pageWords = lemmaProcessorService.extractRussianWords(page.getContent());
+            List<String> pageWords = lemmaProcessorService.getRussianWords(page.getContent());
             List<String> pageLemmas = translateWordsIntoLemmas(pageWords);
 
             String snippet = pageParser.getSnippet(query, pageWords);
