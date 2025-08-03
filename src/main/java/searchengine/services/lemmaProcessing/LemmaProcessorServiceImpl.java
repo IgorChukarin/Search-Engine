@@ -77,7 +77,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         List<String> russianWords = new ArrayList<>();
         while (matcher.find()) {
             String russianWord = matcher.group();
-            if (!isServiceWord(russianWord)) {
+            if (!isServiceWord(russianWord.toLowerCase())) {
                 russianWords.add(russianWord);
             }
         }

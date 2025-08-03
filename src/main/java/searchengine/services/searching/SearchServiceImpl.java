@@ -35,18 +35,19 @@ public class SearchServiceImpl implements SearchService{
         if (query == null || query.isBlank()) {
             return new NegativeResponse("Задан пустой поисковый запрос");
         }
-        List<String> words = lemmaProcessorService.getRussianWords(query);
-        List<String> lemmas = translateWordsIntoLemmas(words);
-        List<Lemma> matchedLemmas = matchLemmas(lemmas);
-        if (matchedLemmas.isEmpty() || lemmas.size() != matchedLemmas.size()) return null;
+        List<String> queryWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
+        List<String> queryLemmas = translateWordsIntoLemmas(queryWords);
+        List<Lemma> matchedLemmas = matchLemmasFromDataBase(queryLemmas);
+        if (matchedLemmas.isEmpty() || queryLemmas.size() != matchedLemmas.size()) System.out.println(queryLemmas.size() + " - " + matchedLemmas.size());
         matchedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
+
         List<SearchIndex> filteredIndices = filterIndices(matchedLemmas);
         RelevanceData relevanceData = calculateRelevance(filteredIndices, matchedLemmas);
         Map<Page, Float> pageRelevance = relevanceData.getPageRelevance();
         float maxRelevance = relevanceData.getMaxRelevance();
         Map<Page, Float> normalizedRelevance = normalizeRelevance(pageRelevance, maxRelevance);
         List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(normalizedRelevance);
-        List<SearchData> searchDataList = createSearchData(sortedPages, query, lemmas);
+        List<SearchData> searchDataList = createSearchData(sortedPages, query, queryLemmas);
         return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
@@ -61,13 +62,13 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public List<Lemma> matchLemmas(List<String> lemmas) {
-        List<Lemma> storedLemmas = new ArrayList<>();
-        for (String lemmaWord : lemmas) {
-            List<Lemma> foundLemmas = lemmaService.findAllByLemma(lemmaWord);
-            storedLemmas.addAll(foundLemmas);
+    public List<Lemma> matchLemmasFromDataBase(List<String> queryLemmas) {
+        List<Lemma> indexedLemmas = new ArrayList<>();
+        for (String queryLemma : queryLemmas) {
+            List<Lemma> foundLemmas = lemmaService.findAllByLemma(queryLemma);
+            indexedLemmas.addAll(foundLemmas);
         }
-        return storedLemmas;
+        return indexedLemmas;
     }
 
     public List<SearchIndex> filterIndices(List<Lemma> matchedLemmas) {

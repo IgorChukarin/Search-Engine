@@ -10,7 +10,6 @@ import java.util.List;
 @Getter
 @Setter
 public class PositiveSearchResponse extends Response {
-    private boolean result;
     private int count;
     private List<SearchData> data;
 
