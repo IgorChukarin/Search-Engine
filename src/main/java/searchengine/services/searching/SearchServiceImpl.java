@@ -1,8 +1,10 @@
 package searchengine.services.searching;
 
 import org.springframework.stereotype.Service;
+import searchengine.dto.indexing.NegativeResponse;
+import searchengine.dto.indexing.Response;
 import searchengine.dto.indexing.SearchData;
-import searchengine.dto.indexing.SearchResponse;
+import searchengine.dto.indexing.PositiveSearchResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
@@ -29,7 +31,10 @@ public class SearchServiceImpl implements SearchService{
     }
 
     @Override
-    public SearchResponse search(String query, String site, int offset, int limit) {
+    public Response search(String query, String site, int offset, int limit) {
+        if (query == null || query.isBlank()) {
+            return new NegativeResponse("Задан пустой поисковый запрос");
+        }
         List<String> words = lemmaProcessorService.getRussianWords(query);
         List<String> lemmas = translateWordsIntoLemmas(words);
         List<Lemma> matchedLemmas = matchLemmas(lemmas);
@@ -42,14 +47,14 @@ public class SearchServiceImpl implements SearchService{
         Map<Page, Float> normalizedRelevance = normalizeRelevance(pageRelevance, maxRelevance);
         List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(normalizedRelevance);
         List<SearchData> searchDataList = createSearchData(sortedPages, query, lemmas);
-        return new SearchResponse(searchDataList.size(), searchDataList);
+        return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
 
     public List<String> translateWordsIntoLemmas(List<String> words) {
         List<String> lemmas = new ArrayList<>();
         for (String word : words) {
-            List<String> wordLemmas = lemmaProcessorService.findBaseForms(word);
+            List<String> wordLemmas = lemmaProcessorService.findBaseForms(word.toLowerCase());
             lemmas.addAll(wordLemmas);
         }
         return lemmas;

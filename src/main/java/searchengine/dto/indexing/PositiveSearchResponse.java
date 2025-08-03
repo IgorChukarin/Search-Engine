@@ -7,17 +7,15 @@ import lombok.Setter;
 
 import java.util.List;
 
-@AllArgsConstructor
-@NoArgsConstructor
 @Getter
 @Setter
-public class SearchResponse {
+public class PositiveSearchResponse extends Response {
     private boolean result;
     private int count;
     private List<SearchData> data;
 
-    public SearchResponse(int count, List<SearchData> data) {
-        this.result = true;
+    public PositiveSearchResponse(int count, List<SearchData> data) {
+        super(true);
         this.count = count;
         this.data = data;
     }
