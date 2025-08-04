@@ -45,14 +45,13 @@ public class SearchServiceImpl implements SearchService{
         if (matchedPages.isEmpty()) {
             return new PositiveSearchResponse(0, Collections.emptyList());
         }
-//        RelevanceData relevanceData = calculateRelevance(matchedPages, sortedLemmas);
-//        Map<Page, Float> pageRelevance = relevanceData.getPageRelevance();
-//        float maxRelevance = relevanceData.getMaxRelevance();
-//        Map<Page, Float> normalizedRelevance = normalizeRelevance(pageRelevance, maxRelevance);
-//        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(normalizedRelevance);
-//        List<SearchData> searchDataList = createSearchData(sortedPages, query);
-//        return new PositiveSearchResponse(searchDataList.size(), searchDataList);
-        return new PositiveResponse();
+        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
+        Map<Page, Float> pageRelevance = relevanceData.getPageRelevance();
+        float maxRelevance = relevanceData.getMaxRelevance();
+        Map<Page, Float> relativeRelevance = normalizeRelevance(pageRelevance, maxRelevance);
+        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
+        List<SearchData> searchDataList = createSearchData(sortedPages, query);
+        return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
 
@@ -99,26 +98,21 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public RelevanceData calculateRelevance(List<SearchIndex> filteredIndices, List<Lemma> matchedLemmas) {
+    public RelevanceData getAbsoluteRelevance(Set<Page> matchedPages, List<Lemma> matchedLemmas) {
         Map<Page, Float> pageRelevance = new HashMap<>();
-        float maxRelevance = 0.0F;
-        for (SearchIndex searchIndex : filteredIndices) {
-            Page page = searchIndex.getPage();
-            if (!pageRelevance.containsKey(page)) {
-                Float currentRelevance = pageRelevance.get(page);
-                pageRelevance.put(page, 0.0F);
-            }
-            float relativeRelevance = 0.0F;
+        float maxRelevance = 0;
+        for (Page page : matchedPages) {
+            float relevance = 0;
             for (Lemma lemma : matchedLemmas) {
-                Optional<SearchIndex> optionalSearchIndex = searchIndexRepository.findByLemmaAndPage(lemma, page);
-                if (optionalSearchIndex.isPresent()) {
-                    relativeRelevance += optionalSearchIndex.get().getIndexRank();
+                Optional<SearchIndex> searchIndex = searchIndexRepository.findByLemmaAndPage(lemma, page);
+                if (searchIndex.isPresent()) {
+                    relevance += searchIndex.get().getIndexRank();
                 }
             }
-            pageRelevance.put(page, relativeRelevance);
-            if (relativeRelevance > maxRelevance) {
-                maxRelevance = relativeRelevance;
+            if (relevance > maxRelevance) {
+                maxRelevance = relevance;
             }
+            pageRelevance.put(page, relevance);
         }
         return new RelevanceData(pageRelevance, maxRelevance);
     }
