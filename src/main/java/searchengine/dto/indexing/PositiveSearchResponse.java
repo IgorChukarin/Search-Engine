@@ -9,12 +9,11 @@ import java.util.List;
 
 @Getter
 @Setter
-public class PositiveSearchResponse extends Response {
+public class PositiveSearchResponse extends PositiveResponse {
     private int count;
     private List<SearchData> data;
 
     public PositiveSearchResponse(int count, List<SearchData> data) {
-        super(true);
         this.count = count;
         this.data = data;
     }
