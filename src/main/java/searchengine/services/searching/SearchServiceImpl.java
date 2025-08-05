@@ -33,6 +33,7 @@ public class SearchServiceImpl implements SearchService{
         if (query == null || query.isBlank()) {
             return new NegativeResponse("Задан пустой поисковый запрос");
         }
+
         List<String> queryWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
         HashSet<String> queryLemmas = translateWordsIntoLemmas(queryWords);
         List<Lemma> matchedLemmas = matchLemmasFromDataBase(queryLemmas);
@@ -44,6 +45,9 @@ public class SearchServiceImpl implements SearchService{
         Set<Page> matchedPages = matchPages(sortedLemmas);
         if (matchedPages.isEmpty()) {
             return new PositiveSearchResponse(0, Collections.emptyList());
+        }
+        if (site != null) {
+            matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
         }
         RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
         Map<Page, Float> pageRelevance = relevanceData.getPageRelevance();
