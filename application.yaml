@@ -11,21 +11,26 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: false
 
 indexing-settings:
   sites:
-    - url: https://legalxlator.com
-      name: legalxlator
-    - url: https://vodny-mall.ru
-      name: vodny-mall.ru
+#    - url: https://legalxlator.com
+#      name: legalxlator
+#    - url: https://vodny-mall.ru
+#      name: vodny-mall.ru
+#    - url: https://mir-kubikov.ru
+#      name: mir-kubikov.ru
+#    - url: https://www.mirea.ru
+#      name: mirea.ru
+
     - url: https://www.playback.ru
       name: playBack.Ru
-    - url: https://mir-kubikov.ru
-      name: mir-kubikov.ru
-    - url: https://www.mirea.ru
-      name: mirea.ru
+    - url: https://volochek.life/
+      name: volochek.life
+    - url: http://radiomv.ru/
+      name: radiomv.ru
 
 jsoup-connection:
   userAgent: ChukarinSearchBot

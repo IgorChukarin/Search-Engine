@@ -27,8 +27,8 @@ public class IndexingServiceImpl implements IndexingService {
     private final PageService pageService;
     private final JsoupConfig jsoupConfig;
     private final SitesListConfig sitesList;
-    private final IndexingResultHandler indexingResultHandler;
     private static volatile boolean isIndexing;
+    private final ForkJoinPool forkJoinPool = new ForkJoinPool(4);
 
 
     @Override
@@ -37,19 +37,18 @@ public class IndexingServiceImpl implements IndexingService {
             return new NegativeResponse("Индексация уже запущена");
         }
         isIndexing = true;
-        LinkFinderAction.unlockAction();
+        LinkFinderTask.unlockAction();
         try {
             deleteSitesData();
-            List<LinkFinderAction> linkFinderActions = prepareSitesForIndexing();
-            List<RunnableFuture<String>> runnableFutureTasks = createTasks(linkFinderActions);
-            submitTasks(runnableFutureTasks);
-            handleIndexingResults(runnableFutureTasks);
+            List<LinkFinderTask> linkFinderTasks = prepareSitesForIndexing();
+            invokeTasks(linkFinderTasks);
         }
         catch (Exception e) {
             return new NegativeResponse("Ошибка при запуске индексации");
         }
         return new PositiveResponse();
     }
+
 
     private void deleteSitesData() {
         for (SiteConfig siteConfig : sitesList.getSites()) {
@@ -58,43 +57,44 @@ public class IndexingServiceImpl implements IndexingService {
         }
     }
 
-    private List<LinkFinderAction> prepareSitesForIndexing() {
-        List<LinkFinderAction> actions = new ArrayList<>();
+
+    private List<LinkFinderTask> prepareSitesForIndexing() {
+        List<LinkFinderTask> linkFinderTasks = new ArrayList<>();
         for (SiteConfig siteConfig : sitesList.getSites()) {
             String url = siteConfig.getUrl();
             Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
             siteService.save(site);
-            LinkFinderAction linkFinderAction = new LinkFinderAction(site, url, siteService, pageService, jsoupConfig);
-            actions.add(linkFinderAction);
+            LinkFinderTask linkFinderTask = new LinkFinderTask(site, url, siteService, pageService, jsoupConfig);
+            linkFinderTasks.add(linkFinderTask);
         }
-        return actions;
+        return linkFinderTasks;
     }
 
-    private List<RunnableFuture<String>> createTasks(List<LinkFinderAction> linkFinderActions) {
-        List<RunnableFuture<String>> runnableFutureTasks = new ArrayList<>();
-        for (LinkFinderAction linkFinderAction : linkFinderActions) {
-            RunnableFuture<String> runnableFutureTask = createFutureTask(linkFinderAction);
-            runnableFutureTasks.add(runnableFutureTask);
+
+    private void invokeTasks(List<LinkFinderTask> linkFinderTasks) {
+        forkJoinPool.submit(() -> {
+            for (LinkFinderTask action : linkFinderTasks) {
+                action.fork();
+            }
+            for (LinkFinderTask action : linkFinderTasks) {
+                String result = action.join();
+                setSiteStatus(result);
+            }
+        });
+    }
+
+
+    private void setSiteStatus(String message) {
+        System.out.println("Indexing result: " + message);
+        String url = message.split(" ")[0];
+        Site site = siteService.findByUrl(url);
+        String status = message.split(" ")[1];
+        if (status.equals("indexationSucceed")) {
+            site.setStatus(SiteStatus.INDEXED);
+        } else {
+            site.setStatus(SiteStatus.FAILED);
         }
-        return runnableFutureTasks;
-    }
-
-    private RunnableFuture<String> createFutureTask(LinkFinderAction linkFinderAction) {
-        RunnableFuture<String> future = new FutureTask<>(new RunnableForkJoin(linkFinderAction), linkFinderAction.getSite().getUrl());
-        return future;
-    }
-
-    private void submitTasks(List<RunnableFuture<String>> runnableFutureTasks) {
-        ExecutorService taskExecutor = Executors.newFixedThreadPool(4);
-        runnableFutureTasks.forEach(taskExecutor::execute);
-        taskExecutor.shutdown();
-    }
-
-    private void handleIndexingResults(List<RunnableFuture<String>> runnableFutureTasks) {
-        ExecutorService monitoringExecutor = Executors.newSingleThreadExecutor();
-        indexingResultHandler.setRunnableFutureList(runnableFutureTasks);
-        monitoringExecutor.execute(indexingResultHandler);
-        monitoringExecutor.shutdown();
+        siteService.save(site);
     }
 
 
@@ -104,10 +104,11 @@ public class IndexingServiceImpl implements IndexingService {
             return new NegativeResponse("Индексация не запущена");
         }
         isIndexing = false;
-        LinkFinderAction.lockAction();
+        LinkFinderTask.lockAction();
         changeUnfinishedSiteStatus();
         return new PositiveResponse();
     }
+
 
     private void changeUnfinishedSiteStatus() {
         for (SiteConfig siteConfig : sitesList.getSites()) {

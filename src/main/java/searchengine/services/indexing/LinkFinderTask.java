@@ -20,13 +20,13 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.RecursiveTask;
 
 @AllArgsConstructor
 @RequiredArgsConstructor
 @Getter
 @Setter
-public class LinkFinderAction extends RecursiveAction {
+public class LinkFinderTask extends RecursiveTask<String> {
 
     private static volatile boolean isLocked;
 
@@ -43,39 +43,40 @@ public class LinkFinderAction extends RecursiveAction {
 
     private static final List<Page> PageBuffer = new ArrayList<>();
 
+
     @Override
-    protected void compute() {
+    protected String compute() {
         if (isLocked) {
-            return;
+            return site.getUrl() + " indexationStopped";
         }
         try {
             Thread.sleep(indexingDelay);
+            updateSiteStatusTime();
             Connection.Response response = connectByUrl(currentLink);
             Document document = response.parse();
             saveCurrentLinkIfNotExists(response, document);
             List<String> nestedLinks = findNestedLinks(document);
-            List<LinkFinderAction> actionList = new ArrayList<>();
+            List<LinkFinderTask> actionList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
-                LinkFinderAction action = new LinkFinderAction(site, nestedLink, siteService, pageService, jsoupConfig);
+                LinkFinderTask action = new LinkFinderTask(site, nestedLink, siteService, pageService, jsoupConfig);
                 actionList.add(action);
                 action.fork();
             }
-            for (LinkFinderAction action : actionList) {
+            for (LinkFinderTask action : actionList) {
                 action.join();
             }
-            updateSiteStatusTime();
         } catch (IOException | InterruptedException e) {
             String exception = e.getClass().toString();
-            System.out.println("LinkFinderActionException: " + exception);
+            System.out.println(e.getMessage());
             if (exception.contains("UnknownHostException")) {
                 site.setLastError("Не удалось подключиться к сайту");
+                siteService.save(site);
+                return site.getUrl() + " indexationFailed";
             }
-            site.setStatus(SiteStatus.FAILED);
-            siteService.save(site);
-        } finally {
-            updateSiteStatusTime();
         }
+        return isLocked ? site.getUrl() + " indexationStopped" : site.getUrl() + " indexationSucceed";
     }
+
 
     private Connection.Response connectByUrl(String url) throws IOException {
         return Jsoup.connect(url)
@@ -83,6 +84,7 @@ public class LinkFinderAction extends RecursiveAction {
                 .referrer(jsoupConfig.getReferrer())
                 .execute();
     }
+
 
     private void saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
         String root = site.getUrl();
@@ -98,6 +100,7 @@ public class LinkFinderAction extends RecursiveAction {
             pageService.saveIfNotExist(page);
         }
     }
+
 
     public List<String> findNestedLinks(Document document) {
         Elements elements = document.select("a[href]");
@@ -115,18 +118,23 @@ public class LinkFinderAction extends RecursiveAction {
         return nestedLinks;
     }
 
+
     private boolean shouldFilterLink(String link) {
-        return link.matches(imageRegex) || !link.matches(pathRegex) || link.endsWith(".pdf");
+        return link.matches(imageRegex) || !link.matches(pathRegex) || link.endsWith(".pdf")
+                || link.endsWith(".webp");
     }
+
 
     private void updateSiteStatusTime() {
         site.setStatusTime(LocalDateTime.now());
         siteService.save(site);
     }
 
+
     public static void lockAction() {
         isLocked = true;
     }
+
 
     public static void unlockAction() {
         isLocked = false;
