@@ -25,12 +25,13 @@ indexing-settings:
 #    - url: https://www.mirea.ru
 #      name: mirea.ru
 
-    - url: https://www.playback.ru
+    - url: https://www.playback.ru/
       name: playBack.Ru
     - url: https://volochek.life/
       name: volochek.life
-    - url: http://radiomv.ru/
-      name: radiomv.ru
+    - url: https://dimonvideo.ru/
+      name: dimonvideo.ru
+
 
 jsoup-connection:
   userAgent: ChukarinSearchBot
