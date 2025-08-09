@@ -49,15 +49,12 @@ public class LinkFinderTask extends RecursiveTask<String> {
             return site.getUrl() + " indexationStopped";
         }
         updateSiteStatusTime();
-        System.out.println(currentLink);
         try {
             Thread.sleep(indexingDelay);
             Connection.Response response = connectByUrl(currentLink);
             Document document = response.parse();
             boolean linkIsSaved = saveCurrentLinkIfNotExists(response, document);
-            if (!linkIsSaved) {
-                return site.getUrl() + " indexationFailed";
-            }
+            if (!linkIsSaved) return site.getUrl() + " linkExists";
             List<String> nestedLinks = findNestedLinks(document);
             List<LinkFinderTask> actionList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
@@ -82,14 +79,14 @@ public class LinkFinderTask extends RecursiveTask<String> {
                     .referrer(jsoupConfig.getReferrer())
                     .execute();
         } catch (IOException e) {
+            System.out.println("Failed to connect to " + url + ": " + e.getMessage());
             throw e;
         }
     }
 
 
     private boolean saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
-        String rootUrl = site.getUrl();
-        String path = currentLink.equals(rootUrl) ? "/" : currentLink.substring(rootUrl.length());
+        String path = normalizePath(currentLink);
         Integer code = response.statusCode();
         String content = document.toString();
         Page page = new Page();
@@ -99,6 +96,22 @@ public class LinkFinderTask extends RecursiveTask<String> {
         page.setSite(site);
         synchronized (pageService) {
             return pageService.saveIfNotExist(page);
+        }
+    }
+
+
+    private String normalizePath(String url) {
+        try {
+            URI uri = new URI(url);
+            String path = uri.getPath();
+
+            if (path.endsWith("/") && path.length() > 1) {
+                path = path.substring(0, path.length() - 1);
+            }
+
+            return path.isEmpty() ? "/" : path;
+        } catch (URISyntaxException e) {
+            return "/";
         }
     }
 
@@ -118,7 +131,6 @@ public class LinkFinderTask extends RecursiveTask<String> {
     public List<String> findNestedLinks(Document document) {
         Elements elements = document.select("a[href]");
         List<String> nestedLinks = new ArrayList<>();
-        String rootUrl = site.getUrl();
         for (Element element : elements) {
             String link = element.attr("href");
 
