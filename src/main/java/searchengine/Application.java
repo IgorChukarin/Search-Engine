@@ -11,10 +11,5 @@ public class Application {
 }
 
 //TODO:
-// Multi threading in search control
-// LinkFinderAction - URL, URI
-// Many threads + FJP each?
 // Decouple создвние записи со статусом indexing
-// ForkJoinPool - общий
-// Test reindexing page
 // Потокобезопасность сохранения лемм и индексов

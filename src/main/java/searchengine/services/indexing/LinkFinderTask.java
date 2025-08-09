@@ -40,7 +40,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
 
     private final int indexingDelay = 1000;
 
-    private static final List<Page> PageBuffer = new ArrayList<>();
+    private final LinkFilter linkFilter = new DefaultLinkFilter();
 
 
     @Override
@@ -48,12 +48,16 @@ public class LinkFinderTask extends RecursiveTask<String> {
         if (isLocked) {
             return site.getUrl() + " indexationStopped";
         }
+        updateSiteStatusTime();
+        System.out.println(currentLink);
         try {
             Thread.sleep(indexingDelay);
-            updateSiteStatusTime();
             Connection.Response response = connectByUrl(currentLink);
             Document document = response.parse();
-            saveCurrentLinkIfNotExists(response, document);
+            boolean linkIsSaved = saveCurrentLinkIfNotExists(response, document);
+            if (!linkIsSaved) {
+                return site.getUrl() + " indexationFailed";
+            }
             List<String> nestedLinks = findNestedLinks(document);
             List<LinkFinderTask> actionList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
@@ -65,13 +69,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
                 action.join();
             }
         } catch (IOException | InterruptedException e) {
-            String exception = e.getClass().toString();
-            System.out.println(e.getMessage());
-            if (exception.contains("UnknownHostException")) {
-                site.setLastError("Не удалось подключиться к сайту");
-                siteService.save(site);
-                return site.getUrl() + " indexationFailed";
-            }
+            return site.getUrl() + " indexationFailed";
         }
         return isLocked ? site.getUrl() + " indexationStopped" : site.getUrl() + " indexationSucceed";
     }
@@ -83,9 +81,24 @@ public class LinkFinderTask extends RecursiveTask<String> {
                     .userAgent(jsoupConfig.getUserAgent())
                     .referrer(jsoupConfig.getReferrer())
                     .execute();
-        } catch (org.jsoup.HttpStatusException e) {
-            saveUnreachablePages(url, e.getStatusCode());
+        } catch (IOException e) {
             throw e;
+        }
+    }
+
+
+    private boolean saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
+        String rootUrl = site.getUrl();
+        String path = currentLink.equals(rootUrl) ? "/" : currentLink.substring(rootUrl.length());
+        Integer code = response.statusCode();
+        String content = document.toString();
+        Page page = new Page();
+        page.setPath(path);
+        page.setCode(code);
+        page.setContent(content);
+        page.setSite(site);
+        synchronized (pageService) {
+            return pageService.saveIfNotExist(page);
         }
     }
 
@@ -102,93 +115,36 @@ public class LinkFinderTask extends RecursiveTask<String> {
     }
 
 
-    private void saveCurrentLinkIfNotExists(Connection.Response response, Document document) {
-        String rootUrl = site.getUrl();
-        String path = currentLink.equals(rootUrl) ? "/" : currentLink.substring(rootUrl.length());
-        Integer code = response.statusCode();
-        String content = document.toString();
-        Page page = new Page();
-        page.setPath(path);
-        page.setCode(code);
-        page.setContent(content);
-        page.setSite(site);
-        synchronized (pageService) {
-            pageService.saveIfNotExist(page);
-        }
-    }
-
-
     public List<String> findNestedLinks(Document document) {
         Elements elements = document.select("a[href]");
         List<String> nestedLinks = new ArrayList<>();
-        String root = site.getUrl();
+        String rootUrl = site.getUrl();
         for (Element element : elements) {
             String link = element.attr("href");
-            if (!shouldFilterLink(link) && !pageService.existsByPathAndSiteId(link, site.getId())) {
-                System.out.println("Link: " + link);
-                System.out.println("Full link: " + root.concat(link));
-                nestedLinks.add(root.concat(link));
+
+            if (linkFilter.shouldFilter(link, site)) {
+                continue;
             }
+
+            String normalizedLink = normalizeLink(currentLink, link);
+            if (normalizedLink == null || pageService.existsByPathAndSiteId(link, site.getId())) {
+                continue;
+            }
+
+            nestedLinks.add(normalizedLink);
         }
         return nestedLinks;
     }
 
 
-    private boolean shouldFilterLink(String link) {
-        String lowerCaseLink = link.toLowerCase();
-        return isAnchorOrScript(lowerCaseLink) || isTelOrMail(lowerCaseLink) || isImage(lowerCaseLink)
-                || isFile(lowerCaseLink) || isAnotherSite(link) || hasExternalRedirect(lowerCaseLink);
-    }
-
-    private boolean isAnchorOrScript(String link) {
-        return link.contains("#") || link.startsWith("javascript:");
-    }
-
-    private boolean isTelOrMail(String link) {
-        return link.startsWith("tel:") || link.startsWith("mailto:");
-    }
-
-    private boolean isImage(String link) {
-        return link.endsWith(".jpg") || link.endsWith(".jpeg") || link.endsWith(".png")
-                || link.endsWith(".gif") || link.endsWith(".bmp") || link.endsWith(".svg")
-                || link.endsWith(".webp") || link.endsWith(".tiff") || link.endsWith(".ico");
-    }
-
-    private boolean isFile(String link) {
-        return link.endsWith(".pdf") || link.endsWith(".doc") || link.endsWith(".docx")
-                || link.endsWith(".xls") || link.endsWith(".xlsx") || link.endsWith(".zip")
-                || link.endsWith(".rar") || link.endsWith(".7z") || link.endsWith(".tar")
-                || link.endsWith(".gz") || link.endsWith(".exe") || link.endsWith(".mp3")
-                || link.endsWith(".mp4") || link.endsWith(".avi") || link.endsWith(".mov");
-    }
-
-    private boolean isAnotherSite(String link) {
+    private String normalizeLink(String currentLink, String link) {
         try {
-            URI linkUri = new URI(link);
-            URI rootUri = new URI(site.getUrl());
-            String linkHost = linkUri.getHost();
-            String rootHost = rootUri.getHost();
-            if (linkHost == null) {
-                return false;
-            }
-            return !linkHost.equalsIgnoreCase(rootHost);
-
+            URI base = new URI(currentLink);
+            URI resolved = base.resolve(link);
+            return resolved.toString();
         } catch (URISyntaxException e) {
-            return true;
+            return null;
         }
-    }
-
-    private boolean hasExternalRedirect(String link) {
-        try {
-            URI uri = new URI(link);
-            String query = uri.getQuery();
-            if (query != null && (query.contains("http://") || query.contains("https://"))) {
-                return true;
-            }
-        } catch (URISyntaxException e) {
-            return false;
-        }
-        return false;
     }
 
 

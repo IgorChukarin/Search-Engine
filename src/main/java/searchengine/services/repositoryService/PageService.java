@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface PageService {
 
-    void saveIfNotExist(Page page);
+    boolean saveIfNotExist(Page page);
 
     boolean existsByPathAndSiteId(String path, Integer siteId);
 

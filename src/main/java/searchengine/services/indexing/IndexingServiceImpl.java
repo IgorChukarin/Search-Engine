@@ -37,15 +37,10 @@ public class IndexingServiceImpl implements IndexingService {
             return new NegativeResponse("Индексация уже запущена");
         }
         isIndexing = true;
+        deleteSitesData();
         LinkFinderTask.unlockAction();
-        try {
-            deleteSitesData();
-            List<LinkFinderTask> linkFinderTasks = prepareSitesForIndexing();
-            invokeTasks(linkFinderTasks);
-        }
-        catch (Exception e) {
-            return new NegativeResponse("Ошибка при запуске индексации");
-        }
+        List<LinkFinderTask> linkFinderTasks = prepareSitesForIndexing();
+        invokeTasks(linkFinderTasks);
         return new PositiveResponse();
     }
 
@@ -80,19 +75,28 @@ public class IndexingServiceImpl implements IndexingService {
                 String result = action.join();
                 setSiteStatus(result);
             }
+            isIndexing = false;
+            LinkFinderTask.lockAction();
         });
     }
 
 
     private void setSiteStatus(String message) {
-        System.out.println("Indexing result: " + message);
-        String url = message.split(" ")[0];
+        String[] parts = message.split(" ");
+        String url = parts[0];
+        String status = parts[1];
         Site site = siteService.findByUrl(url);
-        String status = message.split(" ")[1];
-        if (status.equals("indexationSucceed")) {
-            site.setStatus(SiteStatus.INDEXED);
-        } else {
-            site.setStatus(SiteStatus.FAILED);
+        System.out.println("Site: " + site.getUrl() + ", Status: " + status);
+        switch (status) {
+            case "indexationSucceed" -> site.setStatus(SiteStatus.INDEXED);
+            case "indexationStopped" -> {
+                site.setLastError("Индексация остановлена пользователем");
+                site.setStatus(SiteStatus.FAILED);
+            }
+            case "indexationFailed" -> {
+                site.setLastError("Не удалось подключиться к сайту");
+                site.setStatus(SiteStatus.FAILED);
+            }
         }
         siteService.save(site);
     }
@@ -105,21 +109,7 @@ public class IndexingServiceImpl implements IndexingService {
         }
         isIndexing = false;
         LinkFinderTask.lockAction();
-        changeUnfinishedSiteStatus();
         return new PositiveResponse();
-    }
-
-
-    private void changeUnfinishedSiteStatus() {
-        for (SiteConfig siteConfig : sitesList.getSites()) {
-            String url = siteConfig.getUrl();
-            Site site = siteService.findByUrl(url);
-            site.setLastError("Индексация остановлена пользователем");
-            if (site.getStatus() == SiteStatus.INDEXING) {
-                site.setStatus(SiteStatus.FAILED);
-            }
-            siteService.save(site);
-        }
     }
 
 
