@@ -1,4 +1,4 @@
-package searchengine.dto.indexing;
+package searchengine.dto.searching;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class SearchData {
+public class SearchDataDto {
     private String site;
     private String siteName;
     private String uri;

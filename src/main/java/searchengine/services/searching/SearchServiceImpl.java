@@ -2,6 +2,7 @@ package searchengine.services.searching;
 
 import org.springframework.stereotype.Service;
 import searchengine.dto.indexing.*;
+import searchengine.dto.searching.SearchDataDto;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
@@ -54,7 +55,7 @@ public class SearchServiceImpl implements SearchService{
         float maxRelevance = relevanceData.getMaxRelevance();
         Map<Page, Float> relativeRelevance = normalizeRelevance(pageRelevance, maxRelevance);
         List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
-        List<SearchData> searchDataList = createSearchData(sortedPages, query);
+        List<SearchDataDto> searchDataList = createSearchData(sortedPages, query);
         return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
@@ -141,12 +142,12 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    private List<SearchData> createSearchData(List<Map.Entry<Page, Float>> sortedPages, String query) {
-        List<SearchData> searchDataList = new ArrayList<>();
+    private List<SearchDataDto> createSearchData(List<Map.Entry<Page, Float>> sortedPages, String query) {
+        List<SearchDataDto> searchDataList = new ArrayList<>();
         for (Map.Entry<Page, Float> entry : sortedPages) {
             Page page = entry.getKey();
             float relevance = entry.getValue();
-            SearchData searchData = new SearchData();
+            SearchDataDto searchData = new SearchDataDto();
             searchData.setRelevance(relevance);
             searchData.setUri(page.getPath());
             searchData.setSite(page.getSite().getUrl());

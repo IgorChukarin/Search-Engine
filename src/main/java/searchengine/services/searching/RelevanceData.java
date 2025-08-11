@@ -1,9 +1,11 @@
 package searchengine.services.searching;
 
+import lombok.Getter;
 import searchengine.model.Page;
 
 import java.util.Map;
 
+@Getter
 public class RelevanceData {
     private final Map<Page, Float> pageRelevance;
     private final float maxRelevance;
@@ -13,11 +15,4 @@ public class RelevanceData {
         this.maxRelevance = maxRelevance;
     }
 
-    public Map<Page, Float> getPageRelevance() {
-        return pageRelevance;
-    }
-
-    public float getMaxRelevance() {
-        return maxRelevance;
-    }
 }

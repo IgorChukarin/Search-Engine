@@ -16,24 +16,12 @@ spring:
 
 indexing-settings:
   sites:
-    - url: https://legalxlator.com
-      name: legalxlator
-#    - url: https://vodny-mall.ru
-#      name: vodny-mall.ru
-#    - url: https://mir-kubikov.ru
-#      name: mir-kubikov.ru
-#    - url: https://www.mirea.ru
-#      name: mirea.ru
-
-#    - url: https://www.playback.ru/
-#      name: playBack.Ru
-#    - url: http://www.studio404.net/
-#      name: studio404.net
-#    - url: https://volochek.life/
-#      name: volochek.life
-#    - url: https://dimonvideo.ru/
-#      name: dimonvideo.ru
-
+    - url: https://www.playback.ru/
+      name: playBack.ru
+#    - url: https://nikoartgallery.com/
+#      name: nikoartgallery.com
+#    - url: https://www.ipfran.ru/
+#      name: ipfran.ru
 
 jsoup-connection:
   userAgent: ChukarinSearchBot

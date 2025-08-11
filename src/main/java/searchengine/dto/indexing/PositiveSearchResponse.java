@@ -1,9 +1,8 @@
 package searchengine.dto.indexing;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+import searchengine.dto.searching.SearchDataDto;
 
 import java.util.List;
 
@@ -11,9 +10,9 @@ import java.util.List;
 @Setter
 public class PositiveSearchResponse extends PositiveResponse {
     private int count;
-    private List<SearchData> data;
+    private List<SearchDataDto> data;
 
-    public PositiveSearchResponse(int count, List<SearchData> data) {
+    public PositiveSearchResponse(int count, List<SearchDataDto> data) {
         this.count = count;
         this.data = data;
     }

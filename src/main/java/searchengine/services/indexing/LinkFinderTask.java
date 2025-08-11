@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.jsoup.Connection;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,7 +39,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
     private final PageService pageService;
     private final JsoupConfig jsoupConfig;
 
-    private final int indexingDelay = 1000;
+    private final int indexingDelay = 500;
 
     private final LinkFilter linkFilter = new DefaultLinkFilter();
 
@@ -66,6 +67,10 @@ public class LinkFinderTask extends RecursiveTask<String> {
                 action.join();
             }
         } catch (IOException | InterruptedException e) {
+            if (e instanceof HttpStatusException exception) {
+                saveUnreachablePages(currentLink, exception.getStatusCode());
+                return site.getUrl() + " indexationSucceed";
+            }
             return site.getUrl() + " indexationFailed";
         }
         return isLocked ? site.getUrl() + " indexationStopped" : site.getUrl() + " indexationSucceed";
@@ -79,7 +84,6 @@ public class LinkFinderTask extends RecursiveTask<String> {
                     .referrer(jsoupConfig.getReferrer())
                     .execute();
         } catch (IOException e) {
-            System.out.println("Failed to connect to " + url + ": " + e.getMessage());
             throw e;
         }
     }
@@ -100,9 +104,22 @@ public class LinkFinderTask extends RecursiveTask<String> {
     }
 
 
+    private void saveUnreachablePages(String url, int statusCode) {
+        String path = url.equals(site.getUrl()) ? "/" : url.substring(site.getUrl().length());
+        Page page = new Page();
+        page.setPath(path);
+        page.setCode(statusCode);
+        page.setContent("");
+        page.setSite(site);
+        synchronized (pageService) {
+            pageService.saveIfNotExist(page);
+        }
+    }
+
+
     private String normalizePath(String url) {
         try {
-            URI uri = new URI(url);
+            URI uri = new URI(url).normalize();
             String path = uri.getPath();
 
             if (path.endsWith("/") && path.length() > 1) {
@@ -112,18 +129,6 @@ public class LinkFinderTask extends RecursiveTask<String> {
             return path.isEmpty() ? "/" : path;
         } catch (URISyntaxException e) {
             return "/";
-        }
-    }
-
-
-    private void saveUnreachablePages(String url, int statusCode) {
-        String path = url.equals(site.getUrl()) ? "/" : url.substring(site.getUrl().length());
-        Page page = new Page();
-        page.setPath(path);
-        page.setCode(statusCode);
-        page.setSite(site);
-        synchronized (pageService) {
-            pageService.saveIfNotExist(page);
         }
     }
 

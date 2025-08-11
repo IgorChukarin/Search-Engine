@@ -31,6 +31,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private final SearchIndexService searchIndexService;
     private final RussianLuceneMorphology russianLuceneMorphology;
 
+
     public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService) {
         this.pageService = pageService;
         this.lemmaService = lemmaService;
@@ -41,6 +42,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
             throw new RuntimeException("Не удалось инициализировать RussianLuceneMorphology", e);
         }
     }
+
 
     @Override
     public Response IndexPage(String url) {
@@ -83,6 +85,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         }
         return russianWords;
     }
+
 
     public boolean isServiceWord(String word) {
         List<String> wordBaseFormsInfo = russianLuceneMorphology.getMorphInfo(word);
@@ -157,6 +160,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         lemmaService.saveAll(lemmasToSave);
         searchIndexService.saveAll(searchIndicesToSave);
     }
+
 
     private SearchIndex createSearchIndex(Lemma lemma, Page page, float rank) {
         SearchIndex searchIndex = new SearchIndex();
