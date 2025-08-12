@@ -13,6 +13,7 @@ import org.jsoup.select.Elements;
 import searchengine.config.JsoupConfig;
 import searchengine.model.Page;
 import searchengine.model.Site;
+import searchengine.services.lemmaProcessing.LemmaProcessorService;
 import searchengine.services.repositoryService.PageService;
 import searchengine.services.repositoryService.SiteService;
 
@@ -38,6 +39,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
     private final SiteService siteService;
     private final PageService pageService;
     private final JsoupConfig jsoupConfig;
+    private final LemmaProcessorService lemmaProcessorService;
 
     private final int indexingDelay = 500;
 
@@ -59,7 +61,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
             List<String> nestedLinks = findNestedLinks(document);
             List<LinkFinderTask> actionList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
-                LinkFinderTask action = new LinkFinderTask(site, nestedLink, siteService, pageService, jsoupConfig);
+                LinkFinderTask action = new LinkFinderTask(site, nestedLink, siteService, pageService, jsoupConfig, lemmaProcessorService);
                 actionList.add(action);
                 action.fork();
             }
@@ -99,7 +101,11 @@ public class LinkFinderTask extends RecursiveTask<String> {
         page.setContent(content);
         page.setSite(site);
         synchronized (pageService) {
-            return pageService.saveIfNotExist(page);
+            boolean pageIsSaved = pageService.saveIfNotExist(page);
+            if (pageIsSaved) {
+                lemmaProcessorService.IndexPage(path);
+            }
+            return pageIsSaved;
         }
     }
 

@@ -11,6 +11,7 @@ import searchengine.dto.indexing.NegativeResponse;
 import searchengine.dto.indexing.PositiveResponse;
 import searchengine.model.Site;
 import searchengine.model.SiteStatus;
+import searchengine.services.lemmaProcessing.LemmaProcessorService;
 import searchengine.services.repositoryService.PageService;
 import searchengine.services.repositoryService.SiteService;
 
@@ -26,6 +27,7 @@ public class IndexingServiceImpl implements IndexingService {
     private final SiteService siteService;
     private final PageService pageService;
     private final JsoupConfig jsoupConfig;
+    private final LemmaProcessorService lemmaProcessorService;
     private final SitesListConfig sitesList;
     private static volatile boolean isIndexing;
     private final ForkJoinPool forkJoinPool = new ForkJoinPool(4);
@@ -59,7 +61,7 @@ public class IndexingServiceImpl implements IndexingService {
             String url = siteConfig.getUrl();
             Site site = new Site(SiteStatus.INDEXING, LocalDateTime.now(), siteConfig.getUrl(), siteConfig.getName());
             siteService.save(site);
-            LinkFinderTask linkFinderTask = new LinkFinderTask(site, url, siteService, pageService, jsoupConfig);
+            LinkFinderTask linkFinderTask = new LinkFinderTask(site, url, siteService, pageService, jsoupConfig, lemmaProcessorService);
             linkFinderTasks.add(linkFinderTask);
         }
         return linkFinderTasks;
