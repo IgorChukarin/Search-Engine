@@ -70,6 +70,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
+    @Override
     public List<String> getRussianWords(String text) {
         String RUSSIAN_WORD_REGEX = "[а-яА-ЯёЁ]+";
         Pattern russianWordPattern = Pattern.compile(RUSSIAN_WORD_REGEX);
@@ -85,7 +86,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    public boolean isServiceWord(String word) {
+    private boolean isServiceWord(String word) {
         List<String> wordBaseFormsInfo = russianLuceneMorphology.getMorphInfo(word);
         for (String info : wordBaseFormsInfo) {
             if (
@@ -102,7 +103,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    public List<String> getLemmas(List<String> russianWords) {
+    private List<String> getLemmas(List<String> russianWords) {
         List<String> lemmas = new ArrayList<>();
         for (String word : russianWords) {
             List<String> baseForms = findBaseForms(word);
@@ -111,6 +112,8 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         return lemmas;
     }
 
+
+    @Override
     public List<String> findBaseForms(String word) {
         return russianLuceneMorphology.getNormalForms(word.toLowerCase());
     }

@@ -60,7 +60,7 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public HashSet<String> translateWordsIntoLemmas(List<String> words) {
+    private HashSet<String> translateWordsIntoLemmas(List<String> words) {
         HashSet<String> lemmas = new HashSet<>();
         for (String word : words) {
             List<String> wordLemmas = lemmaProcessorService.findBaseForms(word.toLowerCase());
@@ -70,7 +70,7 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public List<Lemma> matchLemmasFromDataBase(HashSet<String> queryLemmas) {
+    private List<Lemma> matchLemmasFromDataBase(HashSet<String> queryLemmas) {
         List<Lemma> indexedLemmas = new ArrayList<>();
         for (String queryLemma : queryLemmas) {
             List<Lemma> foundLemmas = lemmaService.findAllByLemma(queryLemma);
@@ -80,7 +80,7 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public Set<Page> matchPages(List<Lemma> sortedLemmas) {
+    private Set<Page> matchPages(List<Lemma> sortedLemmas) {
         if (sortedLemmas.isEmpty()) {
             return Collections.emptySet();
         }
@@ -103,7 +103,7 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    public RelevanceData getAbsoluteRelevance(Set<Page> matchedPages, List<Lemma> matchedLemmas) {
+    private RelevanceData getAbsoluteRelevance(Set<Page> matchedPages, List<Lemma> matchedLemmas) {
         Map<Page, Float> pageRelevance = new HashMap<>();
         float maxRelevance = 0;
         for (Page page : matchedPages) {
@@ -153,10 +153,8 @@ public class SearchServiceImpl implements SearchService{
             searchData.setSite(page.getSite().getUrl());
             searchData.setSiteName(page.getSite().getName());
 
-
             String title = pageParser.getTitle(page.getContent());
             searchData.setTitle(title != null ? title : "Title не найден");
-
 
             List<String> pageWords = lemmaProcessorService.getRussianWords(page.getContent());
 

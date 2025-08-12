@@ -133,7 +133,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
     }
 
 
-    public List<String> findNestedLinks(Document document) {
+    private List<String> findNestedLinks(Document document) {
         Elements elements = document.select("a[href]");
         List<String> nestedLinks = new ArrayList<>();
         for (Element element : elements) {
