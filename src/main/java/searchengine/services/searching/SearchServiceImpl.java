@@ -31,32 +31,58 @@ public class SearchServiceImpl implements SearchService{
 
     @Override
     public Response search(String query, String site, int offset, int limit) {
+        Response validationResponse = validateQuery(query);
+        if (validationResponse != null) {
+            return validationResponse;
+        }
+
+        List<Lemma> sortedLemmas = processQuery(query);
+        if (sortedLemmas.isEmpty()) {
+            return new PositiveSearchResponse(0, Collections.emptyList());
+        }
+
+        Set<Page> matchedPages = matchPages(sortedLemmas);
+        if (site != null) {
+            matchedPages = filterPagesBySite(matchedPages, site);
+        }
+
+        if (matchedPages.isEmpty()) {
+            return new PositiveSearchResponse(0, Collections.emptyList());
+        }
+
+        if (site != null) {
+            matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
+        }
+
+        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, sortedLemmas, query);
+        return new PositiveSearchResponse(searchDataList.size(), searchDataList);
+    }
+
+
+    private Response validateQuery(String query) {
         if (query == null || query.isBlank()) {
             return new NegativeResponse("Задан пустой поисковый запрос");
         }
+        return null;
+    }
 
+
+    private List<Lemma> processQuery(String query) {
         List<String> queryWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
         HashSet<String> queryLemmas = translateWordsIntoLemmas(queryWords);
         List<Lemma> matchedLemmas = matchLemmasFromDataBase(queryLemmas);
         if (matchedLemmas.size() != queryLemmas.size()) {
-            return new PositiveSearchResponse(0, Collections.emptyList());
+            return Collections.emptyList();
         }
-        List<Lemma> sortedLemmas = new ArrayList<>(matchedLemmas);
-        sortedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
-        Set<Page> matchedPages = matchPages(sortedLemmas);
-        if (matchedPages.isEmpty()) {
-            return new PositiveSearchResponse(0, Collections.emptyList());
-        }
-        if (site != null) {
-            matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
-        }
-        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
-        Map<Page, Float> pageRelevance = relevanceData.getPageRelevance();
-        float maxRelevance = relevanceData.getMaxRelevance();
-        Map<Page, Float> relativeRelevance = normalizeRelevance(pageRelevance, maxRelevance);
-        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
-        List<SearchDataDto> searchDataList = createSearchData(sortedPages, query);
-        return new PositiveSearchResponse(searchDataList.size(), searchDataList);
+        matchedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
+        return matchedLemmas;
+    }
+
+
+    private Set<Page> filterPagesBySite(Set<Page> pages, String site) {
+        return pages.stream()
+                .filter(page -> page.getSite().getUrl().equals(site))
+                .collect(Collectors.toSet());
     }
 
 
@@ -77,6 +103,14 @@ public class SearchServiceImpl implements SearchService{
             indexedLemmas.addAll(foundLemmas);
         }
         return indexedLemmas;
+    }
+
+
+    private List<SearchDataDto> calculateRelevance(Set<Page> matchedPages, List<Lemma> sortedLemmas, String query) {
+        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
+        Map<Page, Float> relativeRelevance = normalizeRelevance(relevanceData.getPageRelevance(), relevanceData.getMaxRelevance());
+        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
+        return createSearchData(sortedPages, query);
     }
 
 
