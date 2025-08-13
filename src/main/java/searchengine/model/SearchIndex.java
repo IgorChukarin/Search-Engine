@@ -27,4 +27,5 @@ public class SearchIndex {
 
     @Column(name = "indexRank", nullable = false)
     private Float indexRank;
+
 }

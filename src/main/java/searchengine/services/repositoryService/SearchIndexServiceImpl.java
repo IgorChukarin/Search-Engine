@@ -2,6 +2,7 @@ package searchengine.services.repositoryService;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import searchengine.model.SearchIndex;
 import searchengine.repository.SearchIndexRepository;
 
@@ -20,5 +21,11 @@ public class SearchIndexServiceImpl implements SearchIndexService{
     @Override
     public void saveAll(List<SearchIndex> searchIndices) {
         searchIndexRepository.saveAll(searchIndices);
+    }
+
+    @Transactional
+    @Override
+    public void deleteAllByPageId(Integer pageId) {
+        searchIndexRepository.deleteAllByPageId(pageId);
     }
 }

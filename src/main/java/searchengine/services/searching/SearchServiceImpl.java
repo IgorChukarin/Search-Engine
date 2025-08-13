@@ -164,6 +164,7 @@ public class SearchServiceImpl implements SearchService{
             float relevance = entry.getValue();
             float normalizedValue = relevance / maxRelevance;
             normalizedRelevance.put(page, normalizedValue);
+
         }
         return normalizedRelevance;
     }

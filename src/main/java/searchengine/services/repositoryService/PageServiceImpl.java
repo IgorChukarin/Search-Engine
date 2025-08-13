@@ -48,4 +48,9 @@ public class PageServiceImpl implements PageService{
     public Integer countPagesBySiteId(Integer id) {
         return pageRepository.countBySiteId(id);
     }
+
+    @Override
+    public void delete(Page page) {
+        pageRepository.delete(page);
+    }
 }

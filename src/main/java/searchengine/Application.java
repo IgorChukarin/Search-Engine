@@ -11,5 +11,6 @@ public class Application {
 }
 
 //TODO:
-// Decouple создвние записи со статусом indexing
-// Потокобезопасность сохранения лемм и индексов
+// Академия, ученые, связь
+// toLowerCase
+

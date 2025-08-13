@@ -11,17 +11,17 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: false
 
 indexing-settings:
   sites:
     - url: https://www.playback.ru/
       name: playBack.ru
-#    - url: https://nikoartgallery.com/
-#      name: nikoartgallery.com
-#    - url: https://www.ipfran.ru/
-#      name: ipfran.ru
+    - url: https://nikoartgallery.com/
+      name: nikoartgallery.com
+    - url: https://www.ipfran.ru/
+      name: ipfran.ru
 
 jsoup-connection:
   userAgent: ChukarinSearchBot

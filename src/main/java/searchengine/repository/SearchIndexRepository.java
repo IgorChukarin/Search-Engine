@@ -12,4 +12,5 @@ public interface SearchIndexRepository extends JpaRepository<SearchIndex, Intege
     List<SearchIndex> findAllByLemma(Lemma lemma);
     boolean existsByLemmaAndPage(Lemma lemma, Page page);
     Optional<SearchIndex> findByLemmaAndPage(Lemma lemma, Page page);
+    void deleteAllByPageId(Integer pageId);
 }

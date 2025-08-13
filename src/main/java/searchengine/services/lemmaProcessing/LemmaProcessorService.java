@@ -5,7 +5,7 @@ import searchengine.dto.indexing.Response;
 import java.util.List;
 
 public interface LemmaProcessorService {
-    Response IndexPage(String url);
+    Response indexPage(String url);
     List<String> getRussianWords(String text);
     List<String> findBaseForms(String word);
 }

@@ -43,7 +43,7 @@ public class ApiController {
 
     @PostMapping("/indexPage")
     public ResponseEntity<Response> indexPage(@RequestParam("url") String url) {
-        return ResponseEntity.ok(lemmaProcessorService.IndexPage(url));
+        return ResponseEntity.ok(lemmaProcessorService.indexPage(url));
     }
 
     @GetMapping("/search")

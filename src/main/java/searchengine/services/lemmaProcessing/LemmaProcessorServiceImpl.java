@@ -10,6 +10,7 @@ import searchengine.dto.indexing.PositiveResponse;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
+import searchengine.model.Site;
 import searchengine.services.repositoryService.LemmaService;
 import searchengine.services.repositoryService.PageService;
 import searchengine.services.repositoryService.SearchIndexService;
@@ -45,28 +46,28 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
 
     @Override
-    public Response IndexPage(String url) {
+    public Response indexPage(String url) {
         List<Page> pages = pageService.findAllByPath(url);
         if (pages.isEmpty()) {
             return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
         ExecutorService executorService = Executors.newFixedThreadPool(4);
         for (Page page : pages) {
-            executorService.submit(() -> processPage(page));
+            executorService.submit(() -> extractLemmasAndIndices(page));
         }
         executorService.shutdown();
         return new PositiveResponse();
     }
 
 
-    private void processPage(Page page) {
+    private void extractLemmasAndIndices(Page page) {
         String content = page.getContent();
         Document document = Jsoup.parse(content);
         String text = document.text().toLowerCase();
         List<String> russianWords = getRussianWords(text);
         List<String> lemmas = getLemmas(russianWords);
-        HashMap<String, Integer> lemmaRanks = countLemmaPageRank(lemmas);
-        saveLemmasAndIndices(lemmaRanks, page);
+        HashMap<String, Integer> lemmasIndexRanks = countLemmasIndexRanks(lemmas);
+        saveLemmasAndIndices(lemmasIndexRanks, page);
     }
 
 
@@ -106,8 +107,8 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private List<String> getLemmas(List<String> russianWords) {
         List<String> lemmas = new ArrayList<>();
         for (String word : russianWords) {
-            List<String> baseForms = findBaseForms(word);
-            lemmas.addAll(baseForms);
+            List<String> wordBaseForms = findBaseForms(word);
+            lemmas.addAll(wordBaseForms);
         }
         return lemmas;
     }
@@ -119,47 +120,50 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    private HashMap<String, Integer> countLemmaPageRank(List<String> lemmas) {
-        HashMap<String, Integer> lemmaPageRanks = new HashMap<>();
+    private HashMap<String, Integer> countLemmasIndexRanks(List<String> lemmas) {
+        HashMap<String, Integer> lemmasIndexRanks = new HashMap<>();
         for (String lemma : lemmas) {
-            if (lemmaPageRanks.containsKey(lemma)) {
-                lemmaPageRanks.put(lemma, lemmaPageRanks.get(lemma) + 1);
+            if (lemmasIndexRanks.containsKey(lemma)) {
+                int currentRank = lemmasIndexRanks.get(lemma);
+                lemmasIndexRanks.put(lemma, currentRank + 1);
             } else {
-                lemmaPageRanks.put(lemma, 1);
+                lemmasIndexRanks.put(lemma, 1);
             }
         }
-        return lemmaPageRanks;
+        return lemmasIndexRanks;
     }
 
 
-    private void saveLemmasAndIndices(HashMap<String, Integer> lemmaRanks, Page page) {
+    private void saveLemmasAndIndices(HashMap<String, Integer> lemmasIndexRanks, Page page) {
         List<Lemma> lemmasToSave = new ArrayList<>();
         List<SearchIndex> searchIndicesToSave = new ArrayList<>();
-        int siteId = page.getSite().getId();
-        for (String lemma : lemmaRanks.keySet()) {
-            Lemma lemmaEntity = getOrCreateLemma(lemma, siteId, page, lemmasToSave);
-            float rank = lemmaRanks.get(lemma);
-            SearchIndex searchIndex = createSearchIndex(lemmaEntity, page, rank);
+        for (String lemma : lemmasIndexRanks.keySet()) {
+
+            Site site = page.getSite();
+            Lemma lemmaEntity = getOrCreateLemma(lemma, site);
+
+            float lemmaIndexRank = lemmasIndexRanks.get(lemma);
+            SearchIndex searchIndex = createSearchIndex(lemmaEntity, page, lemmaIndexRank);
+
+            lemmasToSave.add(lemmaEntity);
             searchIndicesToSave.add(searchIndex);
         }
-
         lemmaService.saveAll(lemmasToSave);
         searchIndexService.saveAll(searchIndicesToSave);
     }
 
 
-    private Lemma getOrCreateLemma(String lemma, int siteId, Page page, List<Lemma> lemmasToSave) {
-        Lemma lemmaEntity;
-        if (lemmaService.existsByLemmaAndSiteId(lemma, siteId)) {
-            lemmaEntity = lemmaService.findByLemmaAndSiteId(lemma, siteId);
-            lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
+    private Lemma getOrCreateLemma(String lemma, Site site) {
+        Lemma lemmaEntity = lemmaService.findByLemmaAndSiteId(lemma, site.getId());
+        if (lemmaEntity != null) {
+            int currentFrequency = lemmaEntity.getFrequency();
+            lemmaEntity.setFrequency(currentFrequency + 1);
         } else {
             lemmaEntity = new Lemma();
             lemmaEntity.setLemma(lemma);
-            lemmaEntity.setSite(page.getSite());
+            lemmaEntity.setSite(site);
             lemmaEntity.setFrequency(1);
         }
-        lemmasToSave.add(lemmaEntity);
         return lemmaEntity;
     }
 
