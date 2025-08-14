@@ -31,17 +31,18 @@ public class SearchServiceImpl implements SearchService{
 
     @Override
     public Response search(String query, String site, int offset, int limit) {
-        Response validationResponse = validateQuery(query);
-        if (validationResponse != null) {
-            return validationResponse;
+        if (query == null || query.isBlank()) {
+            return new NegativeResponse("Задан пустой поисковый запрос");
         }
 
-        List<Lemma> sortedLemmas = processQuery(query);
-        if (sortedLemmas.isEmpty()) {
+        List<Lemma> databaseMatchedLemmas = matchQueryLemmasWithDatabase(query);
+        if (databaseMatchedLemmas.isEmpty()) {
             return new PositiveSearchResponse(0, Collections.emptyList());
         }
 
-        Set<Page> matchedPages = matchPages(sortedLemmas);
+        databaseMatchedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
+
+        Set<Page> matchedPages = matchPages(databaseMatchedLemmas);
         if (site != null) {
             matchedPages = filterPagesBySite(matchedPages, site);
         }
@@ -54,28 +55,20 @@ public class SearchServiceImpl implements SearchService{
             matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
         }
 
-        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, sortedLemmas, query);
+        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, databaseMatchedLemmas, query);
         return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
 
-    private Response validateQuery(String query) {
-        if (query == null || query.isBlank()) {
-            return new NegativeResponse("Задан пустой поисковый запрос");
+    private List<Lemma> matchQueryLemmasWithDatabase(String query) {
+        List<String> russianWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
+        HashSet<String> russianLemmas = translateWordsIntoLemmas(russianWords);
+        List<Lemma> databaseMatchedLemmas = new ArrayList<>();
+        for (String lemma : russianLemmas) {
+            List<Lemma> foundLemmas = lemmaService.findAllByLemma(lemma);
+            databaseMatchedLemmas.addAll(foundLemmas);
         }
-        return null;
-    }
-
-
-    private List<Lemma> processQuery(String query) {
-        List<String> queryWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
-        HashSet<String> queryLemmas = translateWordsIntoLemmas(queryWords);
-        List<Lemma> matchedLemmas = matchLemmasFromDataBase(queryLemmas);
-        if (matchedLemmas.size() != queryLemmas.size()) {
-            return Collections.emptyList();
-        }
-        matchedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
-        return matchedLemmas;
+        return databaseMatchedLemmas;
     }
 
 
@@ -93,16 +86,6 @@ public class SearchServiceImpl implements SearchService{
             lemmas.addAll(wordLemmas);
         }
         return lemmas;
-    }
-
-
-    private List<Lemma> matchLemmasFromDataBase(HashSet<String> queryLemmas) {
-        List<Lemma> indexedLemmas = new ArrayList<>();
-        for (String queryLemma : queryLemmas) {
-            List<Lemma> foundLemmas = lemmaService.findAllByLemma(queryLemma);
-            indexedLemmas.addAll(foundLemmas);
-        }
-        return indexedLemmas;
     }
 
 
@@ -131,7 +114,7 @@ public class SearchServiceImpl implements SearchService{
 
         for (int i = 1; i < sortedLemmas.size(); i++) {
             Lemma lemma = sortedLemmas.get(i);
-            matchedPages.removeIf(page -> !searchIndexRepository.existsByLemmaAndPage(lemma, page));
+            //matchedPages.removeIf(page -> !searchIndexRepository.existsByLemmaAndPage(lemma, page));
         }
         return matchedPages;
     }

@@ -13,4 +13,5 @@ public class Application {
 //TODO:
 // Академия, ученые, связь
 // toLowerCase
+// устройство, интернет
 
