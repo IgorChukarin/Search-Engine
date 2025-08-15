@@ -35,27 +35,24 @@ public class SearchServiceImpl implements SearchService{
             return new NegativeResponse("Задан пустой поисковый запрос");
         }
 
-        List<Lemma> databaseMatchedLemmas = matchQueryLemmasWithDatabase(query);
-        if (databaseMatchedLemmas.isEmpty()) {
+        List<Lemma> lemmasMatchedWithDatabase = matchQueryLemmasWithDatabase(query);
+        if (lemmasMatchedWithDatabase.isEmpty()) {
             return new PositiveSearchResponse(0, Collections.emptyList());
         }
 
-        databaseMatchedLemmas.sort(Comparator.comparingInt(Lemma::getFrequency));
+        lemmasMatchedWithDatabase.sort(Comparator.comparingInt(Lemma::getFrequency));
+        Set<Page> matchedPages = matchPages(lemmasMatchedWithDatabase);
 
-        Set<Page> matchedPages = matchPages(databaseMatchedLemmas);
         if (site != null) {
-            matchedPages = filterPagesBySite(matchedPages, site);
+            matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
         }
 
         if (matchedPages.isEmpty()) {
             return new PositiveSearchResponse(0, Collections.emptyList());
         }
 
-        if (site != null) {
-            matchedPages.removeIf(page -> !page.getSite().getUrl().equals(site));
-        }
 
-        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, databaseMatchedLemmas, query);
+        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, lemmasMatchedWithDatabase, query);
         return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
@@ -72,13 +69,6 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    private Set<Page> filterPagesBySite(Set<Page> pages, String site) {
-        return pages.stream()
-                .filter(page -> page.getSite().getUrl().equals(site))
-                .collect(Collectors.toSet());
-    }
-
-
     private HashSet<String> translateWordsIntoLemmas(List<String> words) {
         HashSet<String> lemmas = new HashSet<>();
         for (String word : words) {
@@ -89,34 +79,46 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    private List<SearchDataDto> calculateRelevance(Set<Page> matchedPages, List<Lemma> sortedLemmas, String query) {
-        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
-        Map<Page, Float> relativeRelevance = normalizeRelevance(relevanceData.getPageRelevance(), relevanceData.getMaxRelevance());
-        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
-        return createSearchData(sortedPages, query);
+    private Set<Page> filterPagesWithDifferentSite(Set<Page> pages, String site) {
+        return pages.stream()
+                .filter(page -> page.getSite().getUrl().equals(site))
+                .collect(Collectors.toSet());
     }
 
 
-    private Set<Page> matchPages(List<Lemma> sortedLemmas) {
-        if (sortedLemmas.isEmpty()) {
-            return Collections.emptySet();
-        }
 
-        Lemma firstLemma = sortedLemmas.get(0);
+    private Set<Page> matchPages(List<Lemma> lemmas) {
+        Lemma firstLemma = lemmas.get(0);
         Set<Page> matchedPages = searchIndexRepository.findAllByLemma(firstLemma)
                 .stream()
                 .map(SearchIndex::getPage)
                 .collect(Collectors.toSet());
 
-        if (sortedLemmas.size() == 1) {
+        if (lemmas.size() == 1) {
             return matchedPages;
         }
 
-        for (int i = 1; i < sortedLemmas.size(); i++) {
-            Lemma lemma = sortedLemmas.get(i);
-            //matchedPages.removeIf(page -> !searchIndexRepository.existsByLemmaAndPage(lemma, page));
+        for (int i = 1; i < lemmas.size(); i++) {
+
+            if (lemmas.get(i).getLemma().equals(firstLemma.getLemma())) {
+                Set<Page> pages = searchIndexRepository.findAllByLemma(lemmas.get(i))
+                        .stream()
+                        .map(SearchIndex::getPage)
+                        .collect(Collectors.toSet());
+                matchedPages.addAll(pages);
+            }
+//            Lemma lemma = lemmas.get(i);
+//            matchedPages.removeIf(page -> !searchIndexRepository.existsByLemmaAndPage(lemma, page));
         }
         return matchedPages;
+    }
+
+
+    private List<SearchDataDto> calculateRelevance(Set<Page> matchedPages, List<Lemma> sortedLemmas, String query) {
+        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
+        Map<Page, Float> relativeRelevance = normalizeRelevance(relevanceData.getPageRelevance(), relevanceData.getMaxRelevance());
+        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
+        return createSearchData(sortedPages, query);
     }
 
 

@@ -47,9 +47,6 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
     @Override
     public Response indexPage(String url) {
-        if (url.equals("/")) {
-            System.out.println("///");
-        }
         List<Page> pages = pageService.findAllByPath(url);
         if (pages.isEmpty()) {
             return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
@@ -60,6 +57,12 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         }
         executorService.shutdown();
         return new PositiveResponse();
+    }
+
+
+    @Override
+    public void indexPage(Page page) {
+        extractLemmasAndIndices(page);
     }
 
 
@@ -144,12 +147,13 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
             Site site = page.getSite();
             Lemma lemmaEntity = getOrCreateLemma(lemma, site);
-
-            float lemmaIndexRank = lemmasIndexRanks.get(lemma);
-            SearchIndex searchIndex = createSearchIndex(lemmaEntity, page, lemmaIndexRank);
-
             lemmasToSave.add(lemmaEntity);
-            searchIndicesToSave.add(searchIndex);
+
+            if (isNewLemma(lemmaEntity)) {
+                float lemmaIndexRank = lemmasIndexRanks.get(lemma);
+                SearchIndex searchIndex = createSearchIndexIfNotExist(lemmaEntity, page, lemmaIndexRank);
+                searchIndicesToSave.add(searchIndex);
+            }
         }
         lemmaService.saveAll(lemmasToSave);
         searchIndexService.saveAll(searchIndicesToSave);
@@ -171,7 +175,12 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     }
 
 
-    private SearchIndex createSearchIndex(Lemma lemma, Page page, float rank) {
+    private boolean isNewLemma(Lemma lemma) {
+        return lemma.getId() == null;
+    }
+
+
+    private SearchIndex createSearchIndexIfNotExist(Lemma lemma, Page page, float rank) {
         SearchIndex searchIndex = new SearchIndex();
         searchIndex.setLemma(lemma);
         searchIndex.setPage(page);

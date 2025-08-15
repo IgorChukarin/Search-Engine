@@ -103,7 +103,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
         synchronized (pageService) {
             boolean pageIsSaved = pageService.saveIfNotExist(page);
             if (pageIsSaved) {
-                lemmaProcessorService.indexPage(path);
+                lemmaProcessorService.indexPage(page);
             }
             return pageIsSaved;
         }
