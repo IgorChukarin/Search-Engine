@@ -24,12 +24,13 @@ public class PageParserServiceImpl implements PageParserService {
         return null;
     }
 
+
     @Override
     public String getSnippet(String query, List<String> pageWords) {
         List<String> queryLemmas = extractQueryLemmas(query);
         HashMap<String, HashSet<String>> lemmaToPageWords = mapPageWordsToLemmas(pageWords);
         HashSet<String> matchedWords = findMatchedWords(queryLemmas, lemmaToPageWords);
-        List<Integer> matchedWordIndices = findMatchedWordIndices(pageWords, matchedWords);
+        List<Integer> matchedWordIndices = findMatchedWordIndices(pageWords, matchedWords); // тут проеб капитальный
         return buildSnippet(pageWords, matchedWordIndices);
     }
 
@@ -60,7 +61,7 @@ public class PageParserServiceImpl implements PageParserService {
     private HashSet<String> findMatchedWords(List<String> queryLemmas, HashMap<String, HashSet<String>> lemmaToPageWords) {
         HashSet<String> matchedWords = new HashSet<>();
         for (String queryLemma : queryLemmas) {
-            matchedWords.addAll(lemmaToPageWords.get(queryLemma));
+            matchedWords.addAll(lemmaToPageWords.getOrDefault(queryLemma, new HashSet<>()));
         }
         return matchedWords;
     }

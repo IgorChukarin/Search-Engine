@@ -7,11 +7,11 @@ import java.util.Map;
 
 @Getter
 public class RelevanceData {
-    private final Map<Page, Float> pageRelevance;
+    private final Map<Page, Float> pageToAbsoluteRelevance;
     private final float maxRelevance;
 
     public RelevanceData(Map<Page, Float> pageRelevance, float maxRelevance) {
-        this.pageRelevance = pageRelevance;
+        this.pageToAbsoluteRelevance = pageRelevance;
         this.maxRelevance = maxRelevance;
     }
 

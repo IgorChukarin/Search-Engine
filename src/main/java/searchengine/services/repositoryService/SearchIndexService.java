@@ -14,4 +14,6 @@ public interface SearchIndexService {
     void deleteAllByPageId(Integer pageId);
 
     boolean existsByLemmaAndPage(Lemma lemma, Page page);
+
+    boolean existsByLemma_LemmaAndPage_Id(String lemma, Integer pageId);
 }

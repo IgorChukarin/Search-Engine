@@ -35,4 +35,9 @@ public class SearchIndexServiceImpl implements SearchIndexService{
     public boolean existsByLemmaAndPage(Lemma lemma, Page page) {
         return searchIndexRepository.existsByLemmaAndPage(lemma, page);
     }
+
+    @Override
+    public boolean existsByLemma_LemmaAndPage_Id(String lemma, Integer pageId) {
+        return searchIndexRepository.existsByLemma_LemmaAndPage_Id(lemma, pageId);
+    }
 }

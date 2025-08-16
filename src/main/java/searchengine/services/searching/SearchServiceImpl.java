@@ -35,9 +35,10 @@ public class SearchServiceImpl implements SearchService{
             return new NegativeResponse("Задан пустой поисковый запрос");
         }
 
+        Response emptySearchResponse = new PositiveSearchResponse(0, Collections.emptyList());
         List<Lemma> lemmasMatchedWithDatabase = matchQueryLemmasWithDatabase(query);
         if (lemmasMatchedWithDatabase.isEmpty()) {
-            return new PositiveSearchResponse(0, Collections.emptyList());
+            return emptySearchResponse;
         }
 
         lemmasMatchedWithDatabase.sort(Comparator.comparingInt(Lemma::getFrequency));
@@ -48,18 +49,19 @@ public class SearchServiceImpl implements SearchService{
         }
 
         if (matchedPages.isEmpty()) {
-            return new PositiveSearchResponse(0, Collections.emptyList());
+            return emptySearchResponse;
         }
 
-
-        List<SearchDataDto> searchDataList = calculateRelevance(matchedPages, lemmasMatchedWithDatabase, query);
+        Map<Page, Float> pageToRelativeRelevance = calculateRelevance(matchedPages, lemmasMatchedWithDatabase, query);
+        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(pageToRelativeRelevance);
+        List<SearchDataDto> searchDataList = createSearchData(sortedPages, query);
         return new PositiveSearchResponse(searchDataList.size(), searchDataList);
     }
 
 
     private List<Lemma> matchQueryLemmasWithDatabase(String query) {
         List<String> russianWords = lemmaProcessorService.getRussianWords(query.toLowerCase());
-        HashSet<String> russianLemmas = translateWordsIntoLemmas(russianWords);
+        HashSet<String> russianLemmas = convertWordsIntoLemmas(russianWords);
         List<Lemma> databaseMatchedLemmas = new ArrayList<>();
         for (String lemma : russianLemmas) {
             List<Lemma> foundLemmas = lemmaService.findAllByLemma(lemma);
@@ -69,7 +71,7 @@ public class SearchServiceImpl implements SearchService{
     }
 
 
-    private HashSet<String> translateWordsIntoLemmas(List<String> words) {
+    private HashSet<String> convertWordsIntoLemmas(List<String> words) {
         HashSet<String> lemmas = new HashSet<>();
         for (String word : words) {
             List<String> wordLemmas = lemmaProcessorService.findBaseForms(word.toLowerCase());
@@ -77,14 +79,6 @@ public class SearchServiceImpl implements SearchService{
         }
         return lemmas;
     }
-
-
-    private Set<Page> filterPagesWithDifferentSite(Set<Page> pages, String site) {
-        return pages.stream()
-                .filter(page -> page.getSite().getUrl().equals(site))
-                .collect(Collectors.toSet());
-    }
-
 
 
     private Set<Page> matchPages(List<Lemma> lemmas) {
@@ -98,32 +92,33 @@ public class SearchServiceImpl implements SearchService{
             return matchedPages;
         }
 
-        for (int i = 1; i < lemmas.size(); i++) {
-
-            if (lemmas.get(i).getLemma().equals(firstLemma.getLemma())) {
-                Set<Page> pages = searchIndexRepository.findAllByLemma(lemmas.get(i))
-                        .stream()
-                        .map(SearchIndex::getPage)
-                        .collect(Collectors.toSet());
-                matchedPages.addAll(pages);
+        for (Page page : matchedPages) {
+            if (!pageContainsLemmas(page, lemmas)) {
+                matchedPages.remove(page);
             }
-//            Lemma lemma = lemmas.get(i);
-//            matchedPages.removeIf(page -> !searchIndexRepository.existsByLemmaAndPage(lemma, page));
         }
         return matchedPages;
     }
 
 
-    private List<SearchDataDto> calculateRelevance(Set<Page> matchedPages, List<Lemma> sortedLemmas, String query) {
-        RelevanceData relevanceData = getAbsoluteRelevance(matchedPages, sortedLemmas);
-        Map<Page, Float> relativeRelevance = normalizeRelevance(relevanceData.getPageRelevance(), relevanceData.getMaxRelevance());
-        List<Map.Entry<Page, Float>> sortedPages = sortPagesByRelevance(relativeRelevance);
-        return createSearchData(sortedPages, query);
+    private boolean pageContainsLemmas(Page page, List<Lemma> lemmas) {
+        for (Lemma lemma : lemmas) {
+            if(!searchIndexRepository.existsByLemma_LemmaAndPage_Id(lemma.getLemma(), page.getId())) {
+                return false;
+            }
+        }
+        return true;
     }
 
 
-    private RelevanceData getAbsoluteRelevance(Set<Page> matchedPages, List<Lemma> matchedLemmas) {
-        Map<Page, Float> pageRelevance = new HashMap<>();
+    private Map<Page, Float> calculateRelevance(Set<Page> matchedPages, List<Lemma> sortedLemmas, String query) {
+        RelevanceData relevanceData = getAbsoluteAndMaxRelevance(matchedPages, sortedLemmas);
+        return getRelativeRelevance(relevanceData.getPageToAbsoluteRelevance(), relevanceData.getMaxRelevance());
+    }
+
+
+    private RelevanceData getAbsoluteAndMaxRelevance(Set<Page> matchedPages, List<Lemma> matchedLemmas) {
+        Map<Page, Float> pageToRelevance = new HashMap<>();
         float maxRelevance = 0;
         for (Page page : matchedPages) {
             float relevance = 0;
@@ -136,53 +131,52 @@ public class SearchServiceImpl implements SearchService{
             if (relevance > maxRelevance) {
                 maxRelevance = relevance;
             }
-            pageRelevance.put(page, relevance);
+            pageToRelevance.put(page, relevance);
         }
-        return new RelevanceData(pageRelevance, maxRelevance);
+        return new RelevanceData(pageToRelevance, maxRelevance);
     }
 
 
-    private Map<Page, Float> normalizeRelevance(Map<Page, Float> pageRelevance, float maxRelevance) {
-        Map<Page, Float> normalizedRelevance = new HashMap<>();
-        for (Map.Entry<Page, Float> entry : pageRelevance.entrySet()) {
+    private Map<Page, Float> getRelativeRelevance(Map<Page, Float> pageToAbsoluteRelevance, float maxRelevance) {
+        Map<Page, Float> relativeRelevance = new HashMap<>();
+        for (Map.Entry<Page, Float> entry : pageToAbsoluteRelevance.entrySet()) {
             Page page = entry.getKey();
             float relevance = entry.getValue();
             float normalizedValue = relevance / maxRelevance;
-            normalizedRelevance.put(page, normalizedValue);
-
+            relativeRelevance.put(page, normalizedValue);
         }
-        return normalizedRelevance;
+        return relativeRelevance;
     }
 
 
-    private List<Map.Entry<Page, Float>> sortPagesByRelevance(Map<Page, Float> normalizedRelevance) {
-        List<Map.Entry<Page, Float>> sortedPages = new ArrayList<>(normalizedRelevance.entrySet());
+    private List<Map.Entry<Page, Float>> sortPagesByRelevance(Map<Page, Float> pageToRelativeRelevance) {
+        List<Map.Entry<Page, Float>> sortedPages = new ArrayList<>(pageToRelativeRelevance.entrySet());
         sortedPages.sort(Map.Entry.<Page, Float>comparingByValue().reversed());
         return sortedPages;
     }
 
 
     private List<SearchDataDto> createSearchData(List<Map.Entry<Page, Float>> sortedPages, String query) {
-        List<SearchDataDto> searchDataList = new ArrayList<>();
+        List<SearchDataDto> searchDataDtos = new ArrayList<>();
         for (Map.Entry<Page, Float> entry : sortedPages) {
             Page page = entry.getKey();
             float relevance = entry.getValue();
-            SearchDataDto searchData = new SearchDataDto();
-            searchData.setRelevance(relevance);
-            searchData.setUri(page.getPath());
-            searchData.setSite(page.getSite().getUrl());
-            searchData.setSiteName(page.getSite().getName());
+            SearchDataDto searchDataDto = new SearchDataDto();
+            searchDataDto.setRelevance(relevance);
+            searchDataDto.setUri(page.getPath());
+            searchDataDto.setSite(page.getSite().getUrl());
+            searchDataDto.setSiteName(page.getSite().getName());
 
             String title = pageParser.getTitle(page.getContent());
-            searchData.setTitle(title != null ? title : "Title не найден");
+            searchDataDto.setTitle(title != null ? title : "Title не найден");
 
             List<String> pageWords = lemmaProcessorService.getRussianWords(page.getContent());
 
             String snippet = pageParser.getSnippet(query, pageWords);
-            searchData.setSnippet(snippet != null ? snippet : "Snippet не найден");
+            searchDataDto.setSnippet(snippet != null ? snippet : "Snippet не найден");
 
-            searchDataList.add(searchData);
+            searchDataDtos.add(searchDataDto);
         }
-        return searchDataList;
+        return searchDataDtos;
     }
 }
