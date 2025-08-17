@@ -1,6 +1,6 @@
 # Search Engine
 This is my study project, which finds all the pages of specified websites, all the words from this pages, converts them to lemmas. Lately this lemmas are used to perform search through indexed websites.
-In linguistics, a **lemma** is the canonical or dictionary form of a word
+In linguistics, a **lemma** is the canonical or dictionary form of a word.
 
 ## Working with app through web interface
 Press START INDEXING to find all the pages of the website and all lemmas that occur on the pages.
