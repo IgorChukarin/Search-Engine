@@ -53,4 +53,9 @@ public class PageServiceImpl implements PageService{
     public void delete(Page page) {
         pageRepository.delete(page);
     }
+
+    @Override
+    public void saveAll(List<Page> pages) {
+        pageRepository.saveAll(pages);
+    }
 }

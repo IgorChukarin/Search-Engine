@@ -164,7 +164,7 @@ public class SearchServiceImpl implements SearchService{
             SearchDataDto searchDataDto = new SearchDataDto();
             searchDataDto.setRelevance(relevance);
             searchDataDto.setUri(page.getPath());
-            searchDataDto.setSite(page.getSite().getUrl());
+            searchDataDto.setSite(page.getSite().getUrl().substring(0, page.getSite().getUrl().length() - 1));
             searchDataDto.setSiteName(page.getSite().getName());
 
             String title = pageParser.getTitle(page.getContent());

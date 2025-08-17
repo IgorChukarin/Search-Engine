@@ -62,7 +62,6 @@ public class PageParserServiceImpl implements PageParserService {
     private HashSet<String> findMatchedWords(List<String> queryLemmas, HashMap<String, HashSet<String>> lemmaToPageWords) {
         HashSet<String> matchedWords = new HashSet<>();
         for (String queryLemma : queryLemmas) {
-
             String normalizedLemma = normalize(queryLemma);
             matchedWords.addAll(lemmaToPageWords.getOrDefault(normalizedLemma, new HashSet<>()));
         }

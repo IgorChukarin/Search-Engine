@@ -18,4 +18,6 @@ public interface PageService {
     Integer countPagesBySiteId(Integer id);
 
     void delete(Page page);
+
+    void saveAll(List<Page> pages);
 }

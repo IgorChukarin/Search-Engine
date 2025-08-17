@@ -48,6 +48,8 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     @Override
     public Response indexPage(String url) {
         List<Page> pages = pageService.findAllByPath(url);
+        deletePages(pages);
+        pageService.saveAll(pages);
         if (pages.isEmpty()) {
             return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
@@ -57,6 +59,13 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         }
         executorService.shutdown();
         return new PositiveResponse();
+    }
+
+
+    private void deletePages( List<Page> pages) {
+        for (Page page : pages) {
+            pageService.delete(page);
+        }
     }
 
 
