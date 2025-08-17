@@ -31,6 +31,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private final LemmaService lemmaService;
     private final SearchIndexService searchIndexService;
     private final RussianLuceneMorphology russianLuceneMorphology;
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
 
     public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService) {
@@ -53,7 +54,6 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
         if (pages.isEmpty()) {
             return new NegativeResponse("Данная страница находится за пределами сайтов, указанных в конфигурационном файле");
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(4);
         for (Page page : pages) {
             executorService.submit(() -> extractLemmasAndIndices(page));
         }
@@ -71,7 +71,7 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
     @Override
     public void indexPage(Page page) {
-        extractLemmasAndIndices(page);
+        executorService.submit(() -> extractLemmasAndIndices(page));
     }
 
 

@@ -9,6 +9,7 @@ import searchengine.model.SearchIndex;
 import searchengine.repository.SearchIndexRepository;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -39,5 +40,10 @@ public class SearchIndexServiceImpl implements SearchIndexService{
     @Override
     public boolean existsByLemma_LemmaAndPage_Id(String lemma, Integer pageId) {
         return searchIndexRepository.existsByLemma_LemmaAndPage_Id(lemma, pageId);
+    }
+
+    @Override
+    public List<SearchIndex> findAllByLemma_Lemma(String lemma) {
+        return searchIndexRepository.findAllByLemma_Lemma(lemma);
     }
 }

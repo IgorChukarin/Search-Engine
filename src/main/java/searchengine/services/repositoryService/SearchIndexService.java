@@ -5,6 +5,7 @@ import searchengine.model.Page;
 import searchengine.model.SearchIndex;
 
 import java.util.List;
+import java.util.Set;
 
 public interface SearchIndexService {
     void save(SearchIndex searchIndex);
@@ -16,4 +17,6 @@ public interface SearchIndexService {
     boolean existsByLemmaAndPage(Lemma lemma, Page page);
 
     boolean existsByLemma_LemmaAndPage_Id(String lemma, Integer pageId);
+
+    List<SearchIndex> findAllByLemma_Lemma(String lemma);
 }

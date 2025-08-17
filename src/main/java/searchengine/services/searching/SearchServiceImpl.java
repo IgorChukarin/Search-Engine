@@ -9,6 +9,7 @@ import searchengine.model.SearchIndex;
 import searchengine.repository.SearchIndexRepository;
 import searchengine.services.repositoryService.LemmaService;
 import searchengine.services.lemmaProcessing.LemmaProcessorService;
+import searchengine.services.repositoryService.SearchIndexService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,13 +20,15 @@ public class SearchServiceImpl implements SearchService{
     private final LemmaProcessorService lemmaProcessorService;
     private final LemmaService lemmaService;
     private final SearchIndexRepository searchIndexRepository;
+    private final SearchIndexService searchIndexService;
     private final PageParserService pageParser;
 
 
-    public SearchServiceImpl(LemmaProcessorService lemmaProcessorService, LemmaService lemmaService, SearchIndexRepository searchIndexRepository, PageParserService pageParser) {
+    public SearchServiceImpl(LemmaProcessorService lemmaProcessorService, LemmaService lemmaService, SearchIndexRepository searchIndexRepository, SearchIndexService searchIndexService, PageParserService pageParser) {
         this.lemmaProcessorService = lemmaProcessorService;
         this.lemmaService = lemmaService;
         this.searchIndexRepository = searchIndexRepository;
+        this.searchIndexService = searchIndexService;
         this.pageParser = pageParser;
     }
 
@@ -83,7 +86,9 @@ public class SearchServiceImpl implements SearchService{
 
     private Set<Page> matchPages(List<Lemma> lemmas) {
         Lemma firstLemma = lemmas.get(0);
-        Set<Page> matchedPages = searchIndexRepository.findAllByLemma(firstLemma)
+
+//        Set<Page> matchedPages = searchIndexRepository.findAllByLemma(firstLemma)
+        Set<Page> matchedPages = searchIndexService.findAllByLemma_Lemma(firstLemma.getLemma())
                 .stream()
                 .map(SearchIndex::getPage)
                 .collect(Collectors.toSet());
