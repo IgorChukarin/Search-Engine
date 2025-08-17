@@ -1,11 +1,6 @@
 # Search Engine
-## Desctiption
-The search engine is implemented as a **Spring application**, working with a **locally installed database**. It has a simple web interface and an API through which it can be managed. 
-API allows to:
-- start/stop indexation of the website
-- index pages of the websites
-- search content on the pages
-- get statistics about work of application (how many pages and lemmas found etc.)
+This is my study project, which finds all the pages of specified websites, all the words from this pages, converts them to lemmas. Lately this lemmas are used to perform search through indexed websites.
+
 ## Working with app through web interface
 Press START INDEXING to find all the pages of the website and all lemmas that occur on the pages.
 
@@ -27,3 +22,11 @@ Enter your query and press SEARCH, to find pages that contains information you n
 5. The index is searched for pages containing all these words.
 6. The search results are ranked, sorted, and returned to the user.
 7. Note that for now it only finds russian lemmas on pages, which means that search can be only done in russian.
+
+## Desctiption
+The search engine is implemented as a **Spring application**, working with a **locally installed database**. It has a simple web interface and an API through which it can be managed. 
+API allows to:
+- start/stop indexation of the website
+- index pages of the websites
+- search content on the pages
+- get statistics about work of application (how many pages and lemmas found etc.)
