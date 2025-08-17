@@ -12,6 +12,8 @@ public class Application {
 
 //TODO:
 // Академия, ученые, связь
-// toLowerCase
 // устройство, интернет
+// toLowerCase
+// getSnippet e/ё problem
+
 

@@ -51,7 +51,8 @@ public class PageParserServiceImpl implements PageParserService {
         for (String word : pageWords) {
             List<String> wordLemmas = lemmaProcessorService.findBaseForms(word);
             for (String lemma : wordLemmas) {
-                lemmaToPageWords.computeIfAbsent(lemma, k -> new HashSet<>()).add(word);
+                String normalizedLemma = normalize(lemma);
+                lemmaToPageWords.computeIfAbsent(normalizedLemma, k -> new HashSet<>()).add(word);
             }
         }
         return lemmaToPageWords;
@@ -61,9 +62,16 @@ public class PageParserServiceImpl implements PageParserService {
     private HashSet<String> findMatchedWords(List<String> queryLemmas, HashMap<String, HashSet<String>> lemmaToPageWords) {
         HashSet<String> matchedWords = new HashSet<>();
         for (String queryLemma : queryLemmas) {
-            matchedWords.addAll(lemmaToPageWords.getOrDefault(queryLemma, new HashSet<>()));
+
+            String normalizedLemma = normalize(queryLemma);
+            matchedWords.addAll(lemmaToPageWords.getOrDefault(normalizedLemma, new HashSet<>()));
         }
         return matchedWords;
+    }
+
+
+    private String normalize(String text) {
+        return text.replace('ё', 'е'); // Заменяем "ё" на "е"
     }
 
 
