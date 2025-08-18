@@ -34,15 +34,11 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
     private static final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
 
-    public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService) {
+    public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService, RussianLuceneMorphology russianLuceneMorphology) {
         this.pageService = pageService;
         this.lemmaService = lemmaService;
         this.searchIndexService = searchIndexService;
-        try {
-            this.russianLuceneMorphology = new RussianLuceneMorphology();
-        } catch (IOException e) {
-            throw new RuntimeException("Не удалось инициализировать RussianLuceneMorphology", e);
-        }
+        this.russianLuceneMorphology = russianLuceneMorphology;
     }
 
 
