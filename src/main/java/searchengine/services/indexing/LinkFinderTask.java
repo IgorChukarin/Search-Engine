@@ -59,14 +59,14 @@ public class LinkFinderTask extends RecursiveTask<String> {
             boolean linkIsSaved = saveCurrentLinkIfNotExists(response, document);
             if (!linkIsSaved) return site.getUrl() + " linkExists";
             List<String> nestedLinks = findNestedLinks(document);
-            List<LinkFinderTask> actionList = new ArrayList<>();
+            List<LinkFinderTask> taskList = new ArrayList<>();
             for (String nestedLink : nestedLinks) {
-                LinkFinderTask action = new LinkFinderTask(site, nestedLink, siteService, pageService, jsoupConfig, lemmaProcessorService);
-                actionList.add(action);
-                action.fork();
+                LinkFinderTask task = new LinkFinderTask(site, nestedLink, siteService, pageService, jsoupConfig, lemmaProcessorService);
+                taskList.add(task);
+                task.fork();
             }
-            for (LinkFinderTask action : actionList) {
-                action.join();
+            for (LinkFinderTask task : taskList) {
+                task.join();
             }
         } catch (IOException | InterruptedException e) {
             if (e instanceof HttpStatusException exception) {

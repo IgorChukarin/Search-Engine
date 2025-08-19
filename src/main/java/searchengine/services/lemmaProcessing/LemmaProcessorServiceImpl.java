@@ -11,11 +11,10 @@ import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
 import searchengine.model.Site;
-import searchengine.services.repositoryService.LemmaService;
+import searchengine.repository.LemmaRepository;
+import searchengine.repository.SearchIndexRepository;
 import searchengine.services.repositoryService.PageService;
-import searchengine.services.repositoryService.SearchIndexService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,18 +26,18 @@ import java.util.regex.Pattern;
 @Service
 public class LemmaProcessorServiceImpl implements LemmaProcessorService {
 
-    private final PageService pageService;
-    private final LemmaService lemmaService;
-    private final SearchIndexService searchIndexService;
     private final RussianLuceneMorphology russianLuceneMorphology;
+    private final SearchIndexRepository searchIndexRepository;
+    private final LemmaRepository lemmaRepository;
+    private final PageService pageService;
     private static final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
 
-    public LemmaProcessorServiceImpl(PageService pageService, LemmaService lemmaService, SearchIndexService searchIndexService, RussianLuceneMorphology russianLuceneMorphology) {
+    public LemmaProcessorServiceImpl(PageService pageService, SearchIndexRepository searchIndexRepository, RussianLuceneMorphology russianLuceneMorphology, LemmaRepository lemmaRepository) {
         this.pageService = pageService;
-        this.lemmaService = lemmaService;
-        this.searchIndexService = searchIndexService;
+        this.searchIndexRepository = searchIndexRepository;
         this.russianLuceneMorphology = russianLuceneMorphology;
+        this.lemmaRepository = lemmaRepository;
     }
 
 
@@ -160,13 +159,13 @@ public class LemmaProcessorServiceImpl implements LemmaProcessorService {
                 searchIndicesToSave.add(searchIndex);
             }
         }
-        lemmaService.saveAll(lemmasToSave);
-        searchIndexService.saveAll(searchIndicesToSave);
+        lemmaRepository.saveAll(lemmasToSave);
+        searchIndexRepository.saveAll(searchIndicesToSave);
     }
 
 
     private Lemma getOrCreateLemma(String lemma, Site site) {
-        Lemma lemmaEntity = lemmaService.findByLemmaAndSiteId(lemma, site.getId());
+        Lemma lemmaEntity = lemmaRepository.findByLemmaAndSiteId(lemma, site.getId());
         if (lemmaEntity != null) {
             int currentFrequency = lemmaEntity.getFrequency();
             lemmaEntity.setFrequency(currentFrequency + 1);

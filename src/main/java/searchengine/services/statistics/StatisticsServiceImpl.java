@@ -9,8 +9,8 @@ import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
 import searchengine.model.Site;
+import searchengine.repository.LemmaRepository;
 import searchengine.services.indexing.IndexingService;
-import searchengine.services.repositoryService.LemmaService;
 import searchengine.services.repositoryService.PageService;
 import searchengine.services.repositoryService.SiteService;
 
@@ -25,7 +25,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
     private final SitesListConfig sites;
     private final PageService pageService;
-    private final LemmaService lemmaService;
+    private final LemmaRepository lemmaRepository;
     private final SiteService siteService;
     private final IndexingService indexingService;
 
@@ -49,7 +49,7 @@ public class StatisticsServiceImpl implements StatisticsService {
     private TotalStatistics getTotalStatistics() {
         TotalStatistics total = new TotalStatistics();
         int totalPages = (int) pageService.count();
-        int totalLemmas = (int) lemmaService.count();
+        int totalLemmas = (int) lemmaRepository.count();
         int totalSites = sites.getSites().size();
         total.setPages(totalPages);
         total.setLemmas(totalLemmas);
@@ -68,7 +68,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             Site site = siteService.findByUrl(siteConfig.getUrl());
             int siteId = site.getId();
             int pages = pageService.countPagesBySiteId(siteId);
-            int lemmas = lemmaService.countBySiteId(siteId);
+            int lemmas = lemmaRepository.countBySiteId(siteId);
             item.setPages(pages);
             item.setLemmas(lemmas);
             item.setName(siteConfig.getName());

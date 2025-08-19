@@ -6,10 +6,9 @@ import searchengine.dto.searching.SearchDataDto;
 import searchengine.model.Lemma;
 import searchengine.model.Page;
 import searchengine.model.SearchIndex;
+import searchengine.repository.LemmaRepository;
 import searchengine.repository.SearchIndexRepository;
-import searchengine.services.repositoryService.LemmaService;
 import searchengine.services.lemmaProcessing.LemmaProcessorService;
-import searchengine.services.repositoryService.SearchIndexService;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -18,17 +17,15 @@ import java.util.stream.Collectors;
 public class SearchServiceImpl implements SearchService{
 
     private final LemmaProcessorService lemmaProcessorService;
-    private final LemmaService lemmaService;
+    private final LemmaRepository lemmaRepository;
     private final SearchIndexRepository searchIndexRepository;
-    private final SearchIndexService searchIndexService;
     private final PageParserService pageParser;
 
 
-    public SearchServiceImpl(LemmaProcessorService lemmaProcessorService, LemmaService lemmaService, SearchIndexRepository searchIndexRepository, SearchIndexService searchIndexService, PageParserService pageParser) {
+    public SearchServiceImpl(LemmaProcessorService lemmaProcessorService, LemmaRepository lemmaRepository, SearchIndexRepository searchIndexRepository, PageParserService pageParser) {
         this.lemmaProcessorService = lemmaProcessorService;
-        this.lemmaService = lemmaService;
+        this.lemmaRepository = lemmaRepository;
         this.searchIndexRepository = searchIndexRepository;
-        this.searchIndexService = searchIndexService;
         this.pageParser = pageParser;
     }
 
@@ -67,7 +64,7 @@ public class SearchServiceImpl implements SearchService{
         HashSet<String> russianLemmas = convertWordsIntoLemmas(russianWords);
         List<Lemma> databaseMatchedLemmas = new ArrayList<>();
         for (String lemma : russianLemmas) {
-            List<Lemma> foundLemmas = lemmaService.findAllByLemma(lemma);
+            List<Lemma> foundLemmas = lemmaRepository.findAllByLemma(lemma);
             databaseMatchedLemmas.addAll(foundLemmas);
         }
         return databaseMatchedLemmas;
@@ -86,9 +83,7 @@ public class SearchServiceImpl implements SearchService{
 
     private Set<Page> matchPages(List<Lemma> lemmas) {
         Lemma firstLemma = lemmas.get(0);
-
-//        Set<Page> matchedPages = searchIndexRepository.findAllByLemma(firstLemma)
-        Set<Page> matchedPages = searchIndexService.findAllByLemma_Lemma(firstLemma.getLemma())
+        Set<Page> matchedPages = searchIndexRepository.findAllByLemma_Lemma(firstLemma.getLemma())
                 .stream()
                 .map(SearchIndex::getPage)
                 .collect(Collectors.toSet());
