@@ -29,18 +29,16 @@ public class IndexingServiceImpl implements IndexingService {
     private final JsoupConfig jsoupConfig;
     private final LemmaProcessorService lemmaProcessorService;
     private final SitesListConfig sitesList;
-    private static volatile boolean isIndexing;
     private final ForkJoinPool forkJoinPool = new ForkJoinPool(4);
 
 
     @Override
     public Response startIndexing() {
-        if (isIndexing) {
+        if (!LinkFinderTask.isIndexingLocked()) {
             return new NegativeResponse("Индексация уже запущена");
         }
-        isIndexing = true;
         deleteSitesData();
-        LinkFinderTask.unlockAction();
+        LinkFinderTask.unlockIndexing();
         List<LinkFinderTask> linkFinderTasks = prepareSitesForIndexing();
         invokeTasks(linkFinderTasks);
         return new PositiveResponse();
@@ -77,8 +75,7 @@ public class IndexingServiceImpl implements IndexingService {
                 String result = action.join();
                 setSiteStatus(result);
             }
-            isIndexing = false;
-            LinkFinderTask.lockAction();
+            LinkFinderTask.lockIndexing();
         });
     }
 
@@ -106,17 +103,16 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Override
     public Response stopIndexing() {
-        if (!isIndexing) {
+        if (LinkFinderTask.isIndexingLocked()) {
             return new NegativeResponse("Индексация не запущена");
         }
-        isIndexing = false;
-        LinkFinderTask.lockAction();
+        LinkFinderTask.lockIndexing();
         return new PositiveResponse();
     }
 
 
     @Override
     public boolean isIndexing() {
-        return isIndexing;
+        return !LinkFinderTask.isIndexingLocked();
     }
 }

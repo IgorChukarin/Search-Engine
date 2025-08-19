@@ -9,11 +9,3 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 }
-
-//TODO:
-// Академия, ученые, связь
-// устройство, интернет
-// toLowerCase
-// getSnippet e/ё problem
-
-

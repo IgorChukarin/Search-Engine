@@ -31,7 +31,7 @@ import java.util.concurrent.RecursiveTask;
 @Setter
 public class LinkFinderTask extends RecursiveTask<String> {
 
-    private static volatile boolean isLocked;
+    private static volatile boolean isIndexingLocked = true;
 
     private Site site;
     private String currentLink;
@@ -48,7 +48,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
 
     @Override
     protected String compute() {
-        if (isLocked) {
+        if (isIndexingLocked) {
             return site.getUrl() + " indexationStopped";
         }
         updateSiteStatusTime();
@@ -75,7 +75,7 @@ public class LinkFinderTask extends RecursiveTask<String> {
             }
             return site.getUrl() + " indexationFailed";
         }
-        return isLocked ? site.getUrl() + " indexationStopped" : site.getUrl() + " indexationSucceed";
+        return isIndexingLocked ? site.getUrl() + " indexationStopped" : site.getUrl() + " indexationSucceed";
     }
 
 
@@ -177,12 +177,17 @@ public class LinkFinderTask extends RecursiveTask<String> {
     }
 
 
-    public static void lockAction() {
-        isLocked = true;
+    public static void lockIndexing() {
+        isIndexingLocked = true;
     }
 
 
-    public static void unlockAction() {
-        isLocked = false;
+    public static void unlockIndexing() {
+        isIndexingLocked = false;
+    }
+
+
+    public static boolean isIndexingLocked() {
+        return isIndexingLocked;
     }
 }
